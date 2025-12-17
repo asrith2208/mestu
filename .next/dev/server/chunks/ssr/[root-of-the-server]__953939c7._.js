@@ -8731,6 +8731,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$heart$2d$pulse$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__HeartPulse$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/heart-pulse.js [app-ssr] (ecmascript) <export default as HeartPulse>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$stethoscope$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Stethoscope$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/stethoscope.js [app-ssr] (ecmascript) <export default as Stethoscope>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/users.js [app-ssr] (ecmascript) <export default as Users>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/user.js [app-ssr] (ecmascript) <export default as User>");
 ;
 ;
 function BottomNavigation({ currentPage, setCurrentPage }) {
@@ -8754,6 +8755,11 @@ function BottomNavigation({ currentPage, setCurrentPage }) {
             id: "community",
             label: "Community",
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__["Users"]
+        },
+        {
+            id: "profile",
+            label: "Profile",
+            icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"]
         }
     ];
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -8776,12 +8782,12 @@ function BottomNavigation({ currentPage, setCurrentPage }) {
                                     strokeWidth: isActive ? 2.5 : 2
                                 }, void 0, false, {
                                     fileName: "[project]/components/bottom-navigation.tsx",
-                                    lineNumber: 31,
+                                    lineNumber: 32,
                                     columnNumber: 19
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/bottom-navigation.tsx",
-                                lineNumber: 30,
+                                lineNumber: 31,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -8789,36 +8795,36 @@ function BottomNavigation({ currentPage, setCurrentPage }) {
                                 children: item.label
                             }, void 0, false, {
                                 fileName: "[project]/components/bottom-navigation.tsx",
-                                lineNumber: 33,
+                                lineNumber: 34,
                                 columnNumber: 17
                             }, this),
                             isActive && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 className: "absolute -bottom-1 w-1 h-1 bg-primary rounded-full"
                             }, void 0, false, {
                                 fileName: "[project]/components/bottom-navigation.tsx",
-                                lineNumber: 37,
+                                lineNumber: 38,
                                 columnNumber: 19
                             }, this)
                         ]
                     }, item.id, true, {
                         fileName: "[project]/components/bottom-navigation.tsx",
-                        lineNumber: 24,
+                        lineNumber: 25,
                         columnNumber: 15
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/components/bottom-navigation.tsx",
-                lineNumber: 19,
+                lineNumber: 20,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/components/bottom-navigation.tsx",
-            lineNumber: 18,
+            lineNumber: 19,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/components/bottom-navigation.tsx",
-        lineNumber: 17,
+        lineNumber: 18,
         columnNumber: 5
     }, this);
 }

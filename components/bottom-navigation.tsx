@@ -11,6 +11,7 @@ export default function BottomNavigation({ currentPage, setCurrentPage }: Bottom
     { id: "health-tools", label: "Health", icon: HeartPulse },
     { id: "consultation", label: "Consult", icon: Stethoscope },
     { id: "community", label: "Community", icon: Users },
+    { id: "profile", label: "Profile", icon: User },
   ]
 
   return (
