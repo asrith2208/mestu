@@ -1,0 +1,130 @@
+[00:00:24.200] Server  LOG     
+[00:00:24.200] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:24.201] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:24.202] Server  LOG        	- include was updated to add '.next\dev/types/**/*.ts'
+[00:00:24.202] Server  LOG        	- include was updated to add '.next\dev/types/**/*.ts'
+[00:00:24.202] Server  LOG     
+[00:00:24.203] Server  LOG        The following mandatory changes were made to your tsconfig.json:
+
+[00:00:24.203] Server  LOG        	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+[00:00:24.203] Server  LOG     
+[00:00:28.267] Server  LOG      ✓ Ready in 15.7s
+[00:01:03.253] Server  LOG      ○ Compiling / ...
+[00:01:12.210] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:01:12.934] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:01:13.347] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:13.617] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="en"
+-                         data-jetski-tab-id="1338215581"
+                        >
+                  ...
+
+[00:10:36.685] Server  LOG      ✓ Compiled in 93ms
+[00:10:38.539] Server  ERROR    ⨯ ./app/layout.tsx:5:1
+Module not found: Can't resolve '@/components/ui/sonner'
+  3 | import { Geist, Geist_Mono } from "next/font/google"
+  4 | import { AuthProvider } from "@/components/auth-context"
+> 5 | import { Toaster } from "@/components/ui/sonner"
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import "./globals.css"
+  7 |
+  8 | const geistSans = Geist({ subsets: ["latin"] })
+
+Import map: aliased to relative './components/ui/sonner' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:10:38.543] Server  ERROR    ⨯ ./app/layout.tsx:5:1
+Module not found: Can't resolve '@/components/ui/sonner'
+  3 | import { Geist, Geist_Mono } from "next/font/google"
+  4 | import { AuthProvider } from "@/components/auth-context"
+> 5 | import { Toaster } from "@/components/ui/sonner"
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import "./globals.css"
+  7 |
+  8 | const geistSans = Geist({ subsets: ["latin"] })
+
+Import map: aliased to relative './components/ui/sonner' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:16:15.359] Server  LOG      ✓ Compiled in 180ms
+[00:16:44.052] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:16:44.666] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:16:44.839] Browser ERROR   A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/login" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html
+                          lang="en"
+-                         data-jetski-tab-id="1338215683"
+                        >
+                          <head>
+                          <body
++                           className="geist_9232b81-module__uX3Naq__className bg-background text-foreground"
+-                           className="geist_9232b81-module__uX3Naq__className bg-background text-foreground antigravi..."
+                          >
+                  ...
+

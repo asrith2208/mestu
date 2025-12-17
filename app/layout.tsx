@@ -1,6 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { AuthProvider } from "@/components/auth-context"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"] })
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
-    generator: 'v0.app'
+  generator: 'v0.app'
 }
 
 export default function RootLayout({
@@ -50,7 +52,12 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.className} bg-background text-foreground`}>{children}</body>
+      <body className={`${geistSans.className} bg-background text-foreground`}>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
     </html>
   )
 }
