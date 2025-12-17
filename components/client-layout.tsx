@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { AuthProvider } from "@/components/auth-context"
 import { Toaster } from "@/components/ui/sonner"
 import { SplashScreen } from "@/components/splash-screen"
+import { LanguageProvider } from "@/components/language-context"
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true)
@@ -23,10 +24,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             {loading ? (
                 <SplashScreen onComplete={() => setLoading(false)} />
             ) : (
-                <AuthProvider>
-                    {children}
-                    <Toaster />
-                </AuthProvider>
+                <LanguageProvider>
+                    <AuthProvider>
+                        {children}
+                        <Toaster />
+                    </AuthProvider>
+                </LanguageProvider>
             )}
         </>
     )

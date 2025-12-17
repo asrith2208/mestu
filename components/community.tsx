@@ -9,87 +9,11 @@ interface CommunityProps {
   user: any
 }
 
-const SAMPLE_THREADS = [
-  {
-    id: 1,
-    title: "Tips for managing PCOS symptoms",
-    content:
-      "I found that regular exercise and dietary changes really helped me manage my PCOS symptoms. I started doing low-impact cardio 3 times a week and cut back on processed foods. My energy levels have improved significantly!",
-    category: "pcos",
-    author: "Sarah M.",
-    avatar: "👩",
-    timestamp: "2 days ago",
-    likes: 24,
-    replies: [
-      {
-        id: 101,
-        author: "Jessica K.",
-        avatar: "👩‍🦰",
-        content: "Thanks for sharing! I've been struggling with PCOS too. Did you make any specific dietary changes?",
-        timestamp: "1 day ago",
-        likes: 5,
-        liked: false,
-      },
-      {
-        id: 102,
-        author: "Alex R.",
-        avatar: "👨",
-        content: "This is really helpful. I'm going to try the exercise routine you mentioned.",
-        timestamp: "1 day ago",
-        likes: 3,
-        liked: false,
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Endometriosis pain management",
-    content:
-      "Has anyone found relief with heat therapy? I've been using a heating pad and it helps so much with the pain. I also started taking magnesium supplements which seem to help.",
-    category: "endo",
-    author: "Emma L.",
-    avatar: "👩‍🦱",
-    timestamp: "1 day ago",
-    likes: 18,
-    replies: [
-      {
-        id: 201,
-        author: "Maria S.",
-        avatar: "👩",
-        content: "Heat therapy is a lifesaver for me too! I also recommend trying gentle yoga.",
-        timestamp: "12 hours ago",
-        likes: 8,
-        liked: false,
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "First time tracking my cycle - any tips?",
-    content:
-      "I just started using a cycle tracker and I'm amazed at how much it helps me understand my body. I'm noticing patterns I never saw before. Any tips for someone just starting out?",
-    category: "general",
-    author: "Lisa T.",
-    avatar: "👩‍🦳",
-    timestamp: "3 days ago",
-    likes: 31,
-    replies: [
-      {
-        id: 301,
-        author: "Rachel M.",
-        avatar: "👩",
-        content:
-          "Great to hear! I recommend tracking not just your period but also symptoms and mood. It really helps identify patterns.",
-        timestamp: "2 days ago",
-        likes: 12,
-        liked: false,
-      },
-    ],
-  },
-]
+import { collection, addDoc, query, orderBy, onSnapshot, where } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
 
 export default function Community({ user }: CommunityProps) {
-  const [threads, setThreads] = useState<any[]>(SAMPLE_THREADS)
+  const [threads, setThreads] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [selectedThread, setSelectedThread] = useState<any>(null)
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -100,20 +24,51 @@ export default function Community({ user }: CommunityProps) {
     category: "general",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Real-time listener for posts
+    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const posts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Ensure replies array exists
+        replies: doc.data().replies || []
+      }))
+      setThreads(posts)
+    }, (error) => {
+      console.error("Error fetching posts:", error)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newThread = {
-      id: Date.now(),
-      ...formData,
-      author: "You",
-      avatar: "👤",
-      timestamp: "just now",
-      likes: 0,
-      replies: [],
+    if (!auth.currentUser || !user) {
+      alert("You must be logged in to post.")
+      return
     }
-    setThreads([newThread, ...threads])
-    setFormData({ title: "", content: "", category: "general" })
-    setShowForm(false)
+
+    try {
+      const newPost = {
+        title: formData.title,
+        content: formData.content,
+        category: formData.category,
+        author: user.name || "Anonymous", // Use real name from props
+        // Basic random avatar logic based on name length if no real avatar
+        avatar: "👤",
+        timestamp: new Date().toISOString(),
+        likes: 0,
+        replies: []
+      }
+
+      await addDoc(collection(db, "posts"), newPost)
+      setFormData({ title: "", content: "", category: "general" })
+      setShowForm(false)
+    } catch (error) {
+      console.error("Error posting:", error)
+      alert("Failed to post discussion.")
+    }
   }
 
   const filteredThreads = threads.filter((thread) => {
@@ -216,9 +171,8 @@ export default function Community({ user }: CommunityProps) {
           <button
             key={category.id}
             onClick={() => setSelectedCategory(category.id)}
-            className={`px-4 py-2 rounded-full font-semibold transition-smooth ${
-              selectedCategory === category.id ? "bg-primary text-white" : "bg-muted text-foreground hover:bg-border"
-            }`}
+            className={`px-4 py-2 rounded-full font-semibold transition-smooth ${selectedCategory === category.id ? "bg-primary text-white" : "bg-muted text-foreground hover:bg-border"
+              }`}
           >
             {category.label}
           </button>

@@ -948,3 +948,168 @@ Import traces:
 [00:54:56.596] Server  LOG      ✓ Compiled in 125ms
 [00:54:57.422] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
 Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[01:17:58.760] Server  LOG      ✓ Compiled in 418ms
+[01:18:00.449] Server  LOG      ✓ Compiled in 220ms
+[01:21:51.903] Server  LOG      ✓ Compiled in 544ms
+[01:23:02.515] Server  LOG      ✓ Compiled in 93ms
+[01:23:03.508] Browser ERROR   uncaughtError: ReferenceError: LanguageProvider is not defined
+[01:23:06.141] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[01:23:06.677] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[01:23:07.248] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[01:23:07.250] Server  LOG      ✓ Compiled in 639ms
+[01:23:07.388] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[01:23:08.271] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[01:28:37.043] Server  LOG      ✓ Compiled in 320ms
+[01:30:20.847] Server  LOG      ✓ Compiled in 122ms
+[01:31:35.511] Browser ERROR   ./components/consultation-booking.tsx:47:3
+Parsing ecmascript source code failed
+  45 |   }
+  46 |
+> 47 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  48 |   import { db, auth } from "@/lib/firebase"
+  49 |
+  50 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:31:40.521] Browser ERROR   ./components/consultation-booking.tsx:47:3
+Parsing ecmascript source code failed
+  45 |   }
+  46 |
+> 47 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  48 |   import { db, auth } from "@/lib/firebase"
+  49 |
+  50 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:32:55.521] Browser ERROR   ./components/consultation-booking.tsx:49:3
+Parsing ecmascript source code failed
+  47 |   }
+  48 |
+> 49 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  50 |   import { db, auth } from "@/lib/firebase"
+  51 |
+  52 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:33:15.078] Server  LOG      ✓ Compiled in 134ms
+[01:33:15.519] Browser ERROR   ./components/consultation-booking.tsx:49:3
+Parsing ecmascript source code failed
+  47 |   }
+  48 |
+> 49 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  50 |   import { db, auth } from "@/lib/firebase"
+  51 |
+  52 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:33:19.944] Server  LOG      ✓ Compiled in 112ms
+[01:33:20.512] Browser ERROR   ./components/consultation-booking.tsx:49:3
+Parsing ecmascript source code failed
+  47 |   }
+  48 |
+> 49 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  50 |   import { db, auth } from "@/lib/firebase"
+  51 |
+  52 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:33:21.919] Server  LOG      ✓ Compiled in 89ms
+[01:33:22.518] Browser ERROR   ./components/consultation-booking.tsx:49:3
+Parsing ecmascript source code failed
+  47 |   }
+  48 |
+> 49 |   import { collection, addDoc } from "firebase/firestore"
+     |   ^^^^^^
+  50 |   import { db, auth } from "@/lib/firebase"
+  51 |
+  52 |   const handleSubmit = async (e: any) => {
+
+'import', and 'export' cannot be used outside of module code
+
+Import traces:
+  Client Component Browser:
+    ./components/consultation-booking.tsx [Client Component Browser]
+    ./components/gynecologist-consultation.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/consultation-booking.tsx [Client Component SSR]
+    ./components/gynecologist-consultation.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[01:34:26.613] Server  LOG      ✓ Compiled in 197ms
+[01:34:27.237] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport

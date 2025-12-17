@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { collection, addDoc } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
 
 interface ConsultationBookingProps {
   onBookingComplete: (consultation: any) => void
@@ -44,7 +46,9 @@ export default function ConsultationBooking({ onBookingComplete, user }: Consult
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: any) => {
+
+
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
 
     if (!formData.doctorName || !formData.date || !formData.time || !formData.reason) {
@@ -52,27 +56,41 @@ export default function ConsultationBooking({ onBookingComplete, user }: Consult
       return
     }
 
-    const consultation = {
-      id: Date.now(),
-      ...formData,
-      bookedDate: new Date().toISOString(),
-      status: "confirmed",
+    if (!auth.currentUser) {
+      alert("You must be logged in to book.")
+      return
     }
 
-    onBookingComplete(consultation)
-    setSubmitted(true)
-    setTimeout(() => {
-      setFormData({
-        doctorName: "",
-        doctorSpecialty: "",
-        consultationType: "video",
-        date: "",
-        time: "",
-        reason: "",
-        notes: "",
-      })
-      setSubmitted(false)
-    }, 3000)
+    try {
+      const consultation = {
+        ...formData,
+        bookedDate: new Date().toISOString(),
+        status: "pending", // Default to pending until "confirmed" by doctor (simulated)
+        userId: auth.currentUser.uid
+      }
+
+      const docRef = await addDoc(collection(db, "users", auth.currentUser.uid, "consultations"), consultation)
+
+      // Pass with ID
+      onBookingComplete({ id: docRef.id, ...consultation })
+
+      setSubmitted(true)
+      setTimeout(() => {
+        setFormData({
+          doctorName: "",
+          doctorSpecialty: "",
+          consultationType: "video",
+          date: "",
+          time: "",
+          reason: "",
+          notes: "",
+        })
+        setSubmitted(false)
+      }, 3000)
+    } catch (error) {
+      console.error("Error booking consultation:", error)
+      alert("Failed to book consultation. Please try again.")
+    }
   }
 
   if (submitted) {

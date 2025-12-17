@@ -491,6 +491,13 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 "use client";
 ;
 function CycleInsights({ cycles }) {
+    // Helper helper: Standard Deviation
+    const getStandardDeviation = (array)=>{
+        if (array.length === 0) return 0;
+        const n = array.length;
+        const mean = array.reduce((a, b)=>a + b) / n;
+        return Math.sqrt(array.map((x)=>Math.pow(x - mean, 2)).reduce((a, b)=>a + b) / n);
+    };
     const calculateCycleStats = ()=>{
         if (cycles.length < 2) return null;
         const cycleLengths = [];
@@ -503,24 +510,67 @@ function CycleInsights({ cycles }) {
         const avgCycleLength = Math.round(cycleLengths.reduce((a, b)=>a + b, 0) / cycleLengths.length);
         const minCycleLength = Math.min(...cycleLengths);
         const maxCycleLength = Math.max(...cycleLengths);
+        const stdDev = getStandardDeviation(cycleLengths);
+        const isIrregular = stdDev > 4 // Threshold for irregularity
+        ;
+        // AI Confidence Score (Simple heuristic: Lower variance = higher confidence)
+        let confidence = 100 - stdDev * 5;
+        confidence = Math.max(10, Math.min(95, confidence)); // Clamp between 10% and 95%
         return {
             avgCycleLength,
             minCycleLength,
-            maxCycleLength
+            maxCycleLength,
+            stdDev,
+            isIrregular,
+            confidence
         };
     };
     const getNextPeriodPrediction = ()=>{
         if (cycles.length === 0) return null;
-        const lastCycle = cycles[cycles.length - 1];
-        const lastStart = new Date(lastCycle.startDate);
-        const stats = calculateCycleStats();
-        const avgLength = stats?.avgCycleLength || 28;
-        const nextPeriod = new Date(lastStart.getTime() + avgLength * 24 * 60 * 60 * 1000);
+        const lastCycle = cycles[0] // Sorted desc in PeriodTracker, so index 0 is latest? Wait, let's verify sort. 
+        ;
+        // In PeriodTracker: .sort((a, b) => new Date(b.startDate) - new Date(a.startDate)) -> Descending (newest first).
+        // Cycles passing in prop usually come from there. If they are raw unsorted, we should sort.
+        // Let's assume they are sorted by StartDate DESCENDING as per Firestore query.
+        // If so, cycles[0] is the NEWEST.
+        // BUT the loop above `for (let i = 1; i < cycles.length; i++)` assumes order?
+        // Actually, `cycles` from `PeriodTracker` useEffect uses `orderBy("startDate", "desc")`. 
+        // So cycles[0] is LATEST. cycles[1] is PREVIOUS.
+        // My previous loop logic `cycles[i] - cycles[i-1]` would mean `older - newer` => negative.
+        // I need to fix the loop order handling or sort local.
+        // Let's safe sort local to be sure.
+        const sortedCycles = [
+            ...cycles
+        ].sort((a, b)=>new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+        // Now sortedCycles[last] is newest.
+        // Re-calc with sorted
+        const cycleLengths = [];
+        for(let i = 1; i < sortedCycles.length; i++){
+            const prevStart = new Date(sortedCycles[i - 1].startDate);
+            const currStart = new Date(sortedCycles[i].startDate);
+            const diff = Math.floor((currStart.getTime() - prevStart.getTime()) / (1000 * 60 * 60 * 24));
+            cycleLengths.push(diff);
+        }
+        // Stats logic again with sorted
+        if (cycleLengths.length === 0) return null;
+        const avgLen = Math.round(cycleLengths.reduce((a, b)=>a + b, 0) / cycleLengths.length);
+        const stdDev = getStandardDeviation(cycleLengths);
+        // Prediction
+        const lastStart = new Date(sortedCycles[sortedCycles.length - 1].startDate);
+        const nextDate = new Date(lastStart.getTime() + avgLen * 24 * 60 * 60 * 1000);
         const today = new Date();
-        const daysUntil = Math.ceil((nextPeriod.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        // Range (AI Prediction)
+        const margin = Math.ceil(stdDev);
+        const startRange = new Date(nextDate.getTime() - margin * 24 * 60 * 60 * 1000);
+        const endRange = new Date(nextDate.getTime() + margin * 24 * 60 * 60 * 1000);
         return {
-            nextPeriod,
-            daysUntil
+            nextPeriod: nextDate,
+            daysUntil,
+            isIrregular: stdDev > 4,
+            startRange,
+            endRange,
+            margin
         };
     };
     const getCyclePhase = ()=>{
@@ -566,7 +616,7 @@ function CycleInsights({ cycles }) {
                         children: phase.emoji
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 67,
+                        lineNumber: 112,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -574,7 +624,7 @@ function CycleInsights({ cycles }) {
                         children: "Current Phase"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 68,
+                        lineNumber: 113,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -582,51 +632,115 @@ function CycleInsights({ cycles }) {
                         children: phase.phase
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 69,
+                        lineNumber: 114,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cycle-insights.tsx",
-                lineNumber: 66,
+                lineNumber: 111,
                 columnNumber: 9
             }, this),
             prediction && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "bg-primary/10 border-2 border-primary rounded-lg p-6",
+                className: "bg-primary/10 border-2 border-primary rounded-lg p-6 relative overflow-hidden",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "text-4xl mb-2",
-                        children: "📅"
-                    }, void 0, false, {
+                        className: "flex justify-between items-start mb-2",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "text-4xl",
+                                children: "📅"
+                            }, void 0, false, {
+                                fileName: "[project]/components/cycle-insights.tsx",
+                                lineNumber: 122,
+                                columnNumber: 13
+                            }, this),
+                            stats && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: `px-2 py-1 rounded-full text-xs font-bold ${stats.confidence > 80 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`,
+                                children: [
+                                    Math.round(stats.confidence),
+                                    "% Confidence"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/cycle-insights.tsx",
+                                lineNumber: 124,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 76,
+                        lineNumber: 121,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
                         className: "font-semibold text-foreground mb-1",
-                        children: "Next Period"
+                        children: "Predicted Start"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 77,
+                        lineNumber: 129,
                         columnNumber: 11
                     }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                        className: "text-sm text-muted-foreground",
+                    prediction.isIrregular ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         children: [
-                            prediction.nextPeriod.toLocaleDateString(),
-                            " (",
-                            prediction.daysUntil,
-                            " days away)"
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-lg font-bold text-primary",
+                                children: [
+                                    prediction.startRange.toLocaleDateString(undefined, {
+                                        month: 'short',
+                                        day: 'numeric'
+                                    }),
+                                    " - ",
+                                    prediction.endRange.toLocaleDateString(undefined, {
+                                        month: 'short',
+                                        day: 'numeric'
+                                    })
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/cycle-insights.tsx",
+                                lineNumber: 133,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs text-muted-foreground mt-1",
+                                children: [
+                                    "Due to irregularity (+/- ",
+                                    prediction.margin,
+                                    " days)"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/cycle-insights.tsx",
+                                lineNumber: 136,
+                                columnNumber: 15
+                            }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 78,
+                        lineNumber: 132,
+                        columnNumber: 13
+                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-lg font-bold text-primary",
+                        children: prediction.nextPeriod.toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric'
+                        })
+                    }, void 0, false, {
+                        fileName: "[project]/components/cycle-insights.tsx",
+                        lineNumber: 141,
+                        columnNumber: 13
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-sm text-muted-foreground mt-2",
+                        children: prediction.daysUntil > 0 ? `In approx ${prediction.daysUntil} days` : 'Expected soon'
+                    }, void 0, false, {
+                        fileName: "[project]/components/cycle-insights.tsx",
+                        lineNumber: 146,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cycle-insights.tsx",
-                lineNumber: 75,
+                lineNumber: 120,
                 columnNumber: 9
             }, this),
             stats && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -637,7 +751,7 @@ function CycleInsights({ cycles }) {
                         children: "📊"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 87,
+                        lineNumber: 155,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -645,7 +759,7 @@ function CycleInsights({ cycles }) {
                         children: "Cycle Statistics"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 88,
+                        lineNumber: 156,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -663,13 +777,13 @@ function CycleInsights({ cycles }) {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/cycle-insights.tsx",
-                                        lineNumber: 91,
+                                        lineNumber: 159,
                                         columnNumber: 24
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/cycle-insights.tsx",
-                                lineNumber: 90,
+                                lineNumber: 158,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -683,29 +797,51 @@ function CycleInsights({ cycles }) {
                                             stats.minCycleLength,
                                             "-",
                                             stats.maxCycleLength,
+                                            " days",
+                                            stats.minCycleLength,
+                                            "-",
+                                            stats.maxCycleLength,
                                             " days"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/cycle-insights.tsx",
-                                        lineNumber: 95,
+                                        lineNumber: 163,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/cycle-insights.tsx",
-                                lineNumber: 93,
+                                lineNumber: 161,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-muted-foreground",
+                                children: [
+                                    "Type: ",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: `font-semibold ${stats.isIrregular ? 'text-yellow-600' : 'text-green-600'}`,
+                                        children: stats.isIrregular ? "Irregular" : "Regular"
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/cycle-insights.tsx",
+                                        lineNumber: 169,
+                                        columnNumber: 21
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/components/cycle-insights.tsx",
+                                lineNumber: 168,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 89,
+                        lineNumber: 157,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cycle-insights.tsx",
-                lineNumber: 86,
+                lineNumber: 154,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -716,7 +852,7 @@ function CycleInsights({ cycles }) {
                         children: "✓"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 105,
+                        lineNumber: 179,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -724,7 +860,7 @@ function CycleInsights({ cycles }) {
                         children: "Cycles Tracked"
                     }, void 0, false, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 106,
+                        lineNumber: 180,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -735,19 +871,19 @@ function CycleInsights({ cycles }) {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/cycle-insights.tsx",
-                        lineNumber: 107,
+                        lineNumber: 181,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/cycle-insights.tsx",
-                lineNumber: 104,
+                lineNumber: 178,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/cycle-insights.tsx",
-        lineNumber: 63,
+        lineNumber: 108,
         columnNumber: 5
     }, this);
 }
@@ -1632,6 +1768,88 @@ const SYMPTOM_CATEGORIES = {
         ]
     }
 };
+const CONDITION_SPECIFIC_SYMPTOMS = {
+    pcos: {
+        label: "PCOS Symptoms",
+        symptoms: [
+            {
+                id: "hirsutism",
+                label: "Excess Hair Growth",
+                icon: "🧔‍♀️"
+            },
+            {
+                id: "hair_loss",
+                label: "Hair Thinning",
+                icon: "🧴"
+            },
+            {
+                id: "weight_gain",
+                label: "Rapid Weight Gain",
+                icon: "⚖️"
+            },
+            {
+                id: "acne_cystic",
+                label: "Cystic Acne",
+                icon: "🔴"
+            }
+        ]
+    },
+    endometriosis: {
+        label: "Endometriosis Tracking",
+        symptoms: [
+            {
+                id: "pelvic_pain",
+                label: "Pelvic Pain",
+                icon: "⚡"
+            },
+            {
+                id: "painful_intercourse",
+                label: "Painful Intercourse",
+                icon: "💔"
+            },
+            {
+                id: "painful_bowel",
+                label: "Painful Bowel Mvmts",
+                icon: "🚽"
+            }
+        ]
+    },
+    pmdd: {
+        label: "PMDD Specific",
+        symptoms: [
+            {
+                id: "severe_mood",
+                label: "Severe Mood Swing",
+                icon: "🌪️"
+            },
+            {
+                id: "rage",
+                label: "Sudden Anger",
+                icon: "😡"
+            },
+            {
+                id: "hopelessness",
+                label: "Feeling Hopeless",
+                icon: "🌧️"
+            }
+        ]
+    },
+    fibroids: {
+        label: "Fibroid Symptoms",
+        symptoms: [
+            {
+                id: "heavy_pressure",
+                label: "Pelvic Pressure",
+                icon: "🧱"
+            },
+            {
+                id: "frequent_urinary",
+                label: "Frequent Urination",
+                icon: "🚻"
+            }
+        ]
+    }
+};
 ;
 ;
 function SymptomTracker({ user }) {
@@ -1715,7 +1933,7 @@ function SymptomTracker({ user }) {
                         children: "Symptom Tracker"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 121,
+                        lineNumber: 156,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1723,13 +1941,13 @@ function SymptomTracker({ user }) {
                         children: "Log how you're feeling and track patterns"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 122,
+                        lineNumber: 157,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 120,
+                lineNumber: 155,
                 columnNumber: 7
             }, this),
             symptoms.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1738,12 +1956,12 @@ function SymptomTracker({ user }) {
                     symptoms: symptoms
                 }, void 0, false, {
                     fileName: "[project]/components/symptom-tracker.tsx",
-                    lineNumber: 127,
+                    lineNumber: 162,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 126,
+                lineNumber: 161,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1754,7 +1972,7 @@ function SymptomTracker({ user }) {
                         children: "Select Date"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 133,
+                        lineNumber: 168,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1764,13 +1982,13 @@ function SymptomTracker({ user }) {
                         className: "px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary w-full"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 134,
+                        lineNumber: 169,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 132,
+                lineNumber: 167,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1781,7 +1999,7 @@ function SymptomTracker({ user }) {
                         children: "Overall Pain Level"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 144,
+                        lineNumber: 179,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1796,7 +2014,7 @@ function SymptomTracker({ user }) {
                                 className: "flex-1"
                             }, void 0, false, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 146,
+                                lineNumber: 181,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1807,13 +2025,13 @@ function SymptomTracker({ user }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 154,
+                                lineNumber: 189,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 145,
+                        lineNumber: 180,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1823,33 +2041,33 @@ function SymptomTracker({ user }) {
                                 children: "No pain"
                             }, void 0, false, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 157,
+                                lineNumber: 192,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 className: "flex-1"
                             }, void 0, false, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 158,
+                                lineNumber: 193,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 children: "Severe pain"
                             }, void 0, false, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 159,
+                                lineNumber: 194,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 156,
+                        lineNumber: 191,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 143,
+                lineNumber: 178,
                 columnNumber: 7
             }, this),
             Object.entries(SYMPTOM_CATEGORIES).map(([categoryKey, category])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1860,7 +2078,7 @@ function SymptomTracker({ user }) {
                             children: category.label
                         }, void 0, false, {
                             fileName: "[project]/components/symptom-tracker.tsx",
-                            lineNumber: 166,
+                            lineNumber: 201,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1878,7 +2096,7 @@ function SymptomTracker({ user }) {
                                                         children: symptom.icon
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/symptom-tracker.tsx",
-                                                        lineNumber: 172,
+                                                        lineNumber: 207,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1886,18 +2104,18 @@ function SymptomTracker({ user }) {
                                                         children: symptom.label
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/symptom-tracker.tsx",
-                                                        lineNumber: 173,
+                                                        lineNumber: 208,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                                lineNumber: 171,
+                                                lineNumber: 206,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/symptom-tracker.tsx",
-                                            lineNumber: 170,
+                                            lineNumber: 205,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1913,29 +2131,29 @@ function SymptomTracker({ user }) {
                                                     children: level === 0 ? "None" : level === 1 ? "Mild" : level === 2 ? "Moderate" : "Severe"
                                                 }, level, false, {
                                                     fileName: "[project]/components/symptom-tracker.tsx",
-                                                    lineNumber: 178,
+                                                    lineNumber: 213,
                                                     columnNumber: 21
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/components/symptom-tracker.tsx",
-                                            lineNumber: 176,
+                                            lineNumber: 211,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, symptom.id, true, {
                                     fileName: "[project]/components/symptom-tracker.tsx",
-                                    lineNumber: 169,
+                                    lineNumber: 204,
                                     columnNumber: 15
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/components/symptom-tracker.tsx",
-                            lineNumber: 167,
+                            lineNumber: 202,
                             columnNumber: 11
                         }, this)
                     ]
                 }, categoryKey, true, {
                     fileName: "[project]/components/symptom-tracker.tsx",
-                    lineNumber: 165,
+                    lineNumber: 200,
                     columnNumber: 9
                 }, this)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1946,7 +2164,7 @@ function SymptomTracker({ user }) {
                         children: "Additional Notes"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 204,
+                        lineNumber: 239,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -1957,13 +2175,13 @@ function SymptomTracker({ user }) {
                         placeholder: "Any additional observations or notes about how you're feeling..."
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 205,
+                        lineNumber: 240,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 203,
+                lineNumber: 238,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1972,7 +2190,7 @@ function SymptomTracker({ user }) {
                 children: "Save Symptoms"
             }, void 0, false, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 215,
+                lineNumber: 250,
                 columnNumber: 7
             }, this),
             symptoms.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1983,7 +2201,7 @@ function SymptomTracker({ user }) {
                         children: "Recent History"
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 225,
+                        lineNumber: 260,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1999,7 +2217,7 @@ function SymptomTracker({ user }) {
                                                 children: new Date(entry.date).toLocaleDateString()
                                             }, void 0, false, {
                                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                                lineNumber: 234,
+                                                lineNumber: 269,
                                                 columnNumber: 23
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2011,7 +2229,7 @@ function SymptomTracker({ user }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                                lineNumber: 235,
+                                                lineNumber: 270,
                                                 columnNumber: 23
                                             }, this),
                                             Object.keys(entry.symptoms).length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2023,7 +2241,7 @@ function SymptomTracker({ user }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                                lineNumber: 237,
+                                                lineNumber: 272,
                                                 columnNumber: 25
                                             }, this),
                                             entry.notes && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2031,40 +2249,40 @@ function SymptomTracker({ user }) {
                                                 children: entry.notes
                                             }, void 0, false, {
                                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                                lineNumber: 241,
+                                                lineNumber: 276,
                                                 columnNumber: 39
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/symptom-tracker.tsx",
-                                        lineNumber: 233,
+                                        lineNumber: 268,
                                         columnNumber: 21
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/symptom-tracker.tsx",
-                                    lineNumber: 232,
+                                    lineNumber: 267,
                                     columnNumber: 19
                                 }, this)
                             }, entry.date, false, {
                                 fileName: "[project]/components/symptom-tracker.tsx",
-                                lineNumber: 231,
+                                lineNumber: 266,
                                 columnNumber: 17
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/components/symptom-tracker.tsx",
-                        lineNumber: 226,
+                        lineNumber: 261,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/symptom-tracker.tsx",
-                lineNumber: 224,
+                lineNumber: 259,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/symptom-tracker.tsx",
-        lineNumber: 119,
+        lineNumber: 154,
         columnNumber: 5
     }, this);
 }
@@ -4313,86 +4531,17 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$thread$2d$detail$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/thread-detail.tsx [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$firestore$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/firebase/firestore/dist/index.mjs [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/firestore/dist/index.node.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/firebase.ts [app-ssr] (ecmascript)");
 "use client";
 ;
 ;
 ;
-const SAMPLE_THREADS = [
-    {
-        id: 1,
-        title: "Tips for managing PCOS symptoms",
-        content: "I found that regular exercise and dietary changes really helped me manage my PCOS symptoms. I started doing low-impact cardio 3 times a week and cut back on processed foods. My energy levels have improved significantly!",
-        category: "pcos",
-        author: "Sarah M.",
-        avatar: "👩",
-        timestamp: "2 days ago",
-        likes: 24,
-        replies: [
-            {
-                id: 101,
-                author: "Jessica K.",
-                avatar: "👩‍🦰",
-                content: "Thanks for sharing! I've been struggling with PCOS too. Did you make any specific dietary changes?",
-                timestamp: "1 day ago",
-                likes: 5,
-                liked: false
-            },
-            {
-                id: 102,
-                author: "Alex R.",
-                avatar: "👨",
-                content: "This is really helpful. I'm going to try the exercise routine you mentioned.",
-                timestamp: "1 day ago",
-                likes: 3,
-                liked: false
-            }
-        ]
-    },
-    {
-        id: 2,
-        title: "Endometriosis pain management",
-        content: "Has anyone found relief with heat therapy? I've been using a heating pad and it helps so much with the pain. I also started taking magnesium supplements which seem to help.",
-        category: "endo",
-        author: "Emma L.",
-        avatar: "👩‍🦱",
-        timestamp: "1 day ago",
-        likes: 18,
-        replies: [
-            {
-                id: 201,
-                author: "Maria S.",
-                avatar: "👩",
-                content: "Heat therapy is a lifesaver for me too! I also recommend trying gentle yoga.",
-                timestamp: "12 hours ago",
-                likes: 8,
-                liked: false
-            }
-        ]
-    },
-    {
-        id: 3,
-        title: "First time tracking my cycle - any tips?",
-        content: "I just started using a cycle tracker and I'm amazed at how much it helps me understand my body. I'm noticing patterns I never saw before. Any tips for someone just starting out?",
-        category: "general",
-        author: "Lisa T.",
-        avatar: "👩‍🦳",
-        timestamp: "3 days ago",
-        likes: 31,
-        replies: [
-            {
-                id: 301,
-                author: "Rachel M.",
-                avatar: "👩",
-                content: "Great to hear! I recommend tracking not just your period but also symptoms and mood. It really helps identify patterns.",
-                timestamp: "2 days ago",
-                likes: 12,
-                liked: false
-            }
-        ]
-    }
-];
+;
+;
 function Community({ user }) {
-    const [threads, setThreads] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(SAMPLE_THREADS);
+    const [threads, setThreads] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [showForm, setShowForm] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [selectedThread, setSelectedThread] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     const [selectedCategory, setSelectedCategory] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("all");
@@ -4402,27 +4551,51 @@ function Community({ user }) {
         content: "",
         category: "general"
     });
-    const handleSubmit = (e)=>{
-        e.preventDefault();
-        const newThread = {
-            id: Date.now(),
-            ...formData,
-            author: "You",
-            avatar: "👤",
-            timestamp: "just now",
-            likes: 0,
-            replies: []
-        };
-        setThreads([
-            newThread,
-            ...threads
-        ]);
-        setFormData({
-            title: "",
-            content: "",
-            category: "general"
+    useEffect(()=>{
+        // Real-time listener for posts
+        const q = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["query"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["collection"])(__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["db"], "posts"), (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["orderBy"])("timestamp", "desc"));
+        const unsubscribe = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["onSnapshot"])(q, (snapshot)=>{
+            const posts = snapshot.docs.map((doc)=>({
+                    id: doc.id,
+                    ...doc.data(),
+                    // Ensure replies array exists
+                    replies: doc.data().replies || []
+                }));
+            setThreads(posts);
+        }, (error)=>{
+            console.error("Error fetching posts:", error);
         });
-        setShowForm(false);
+        return ()=>unsubscribe();
+    }, []);
+    const handleSubmit = async (e)=>{
+        e.preventDefault();
+        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser || !user) {
+            alert("You must be logged in to post.");
+            return;
+        }
+        try {
+            const newPost = {
+                title: formData.title,
+                content: formData.content,
+                category: formData.category,
+                author: user.name || "Anonymous",
+                // Basic random avatar logic based on name length if no real avatar
+                avatar: "👤",
+                timestamp: new Date().toISOString(),
+                likes: 0,
+                replies: []
+            };
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["addDoc"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["collection"])(__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["db"], "posts"), newPost);
+            setFormData({
+                title: "",
+                content: "",
+                category: "general"
+            });
+            setShowForm(false);
+        } catch (error) {
+            console.error("Error posting:", error);
+            alert("Failed to post discussion.");
+        }
     };
     const filteredThreads = threads.filter((thread)=>{
         const matchesCategory = selectedCategory === "all" || thread.category === selectedCategory;
@@ -4440,7 +4613,7 @@ function Community({ user }) {
                         children: "Community Forums"
                     }, void 0, false, {
                         fileName: "[project]/components/community.tsx",
-                        lineNumber: 130,
+                        lineNumber: 85,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4448,13 +4621,13 @@ function Community({ user }) {
                         children: "Connect with others and share experiences"
                     }, void 0, false, {
                         fileName: "[project]/components/community.tsx",
-                        lineNumber: 131,
+                        lineNumber: 86,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 129,
+                lineNumber: 84,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4467,12 +4640,12 @@ function Community({ user }) {
                     className: "w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 }, void 0, false, {
                     fileName: "[project]/components/community.tsx",
-                    lineNumber: 136,
+                    lineNumber: 91,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 135,
+                lineNumber: 90,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4481,7 +4654,7 @@ function Community({ user }) {
                 children: showForm ? "Cancel" : "+ Start Discussion"
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 146,
+                lineNumber: 101,
                 columnNumber: 7
             }, this),
             showForm && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4497,7 +4670,7 @@ function Community({ user }) {
                                     children: "Title"
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 158,
+                                    lineNumber: 113,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -4512,13 +4685,13 @@ function Community({ user }) {
                                     placeholder: "What's on your mind?"
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 159,
+                                    lineNumber: 114,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/community.tsx",
-                            lineNumber: 157,
+                            lineNumber: 112,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4528,7 +4701,7 @@ function Community({ user }) {
                                     children: "Category"
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 170,
+                                    lineNumber: 125,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -4544,7 +4717,7 @@ function Community({ user }) {
                                             children: "General Support"
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 176,
+                                            lineNumber: 131,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -4552,7 +4725,7 @@ function Community({ user }) {
                                             children: "PCOS"
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 177,
+                                            lineNumber: 132,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -4560,7 +4733,7 @@ function Community({ user }) {
                                             children: "Endometriosis"
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 178,
+                                            lineNumber: 133,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -4568,7 +4741,7 @@ function Community({ user }) {
                                             children: "PMDD"
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 179,
+                                            lineNumber: 134,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -4576,19 +4749,19 @@ function Community({ user }) {
                                             children: "Tips & Tricks"
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 180,
+                                            lineNumber: 135,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 171,
+                                    lineNumber: 126,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/community.tsx",
-                            lineNumber: 169,
+                            lineNumber: 124,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4598,7 +4771,7 @@ function Community({ user }) {
                                     children: "Message"
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 185,
+                                    lineNumber: 140,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -4613,13 +4786,13 @@ function Community({ user }) {
                                     placeholder: "Share your thoughts..."
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 186,
+                                    lineNumber: 141,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/community.tsx",
-                            lineNumber: 184,
+                            lineNumber: 139,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4628,18 +4801,18 @@ function Community({ user }) {
                             children: "Post Discussion"
                         }, void 0, false, {
                             fileName: "[project]/components/community.tsx",
-                            lineNumber: 196,
+                            lineNumber: 151,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/community.tsx",
-                    lineNumber: 156,
+                    lineNumber: 111,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 155,
+                lineNumber: 110,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4675,12 +4848,12 @@ function Community({ user }) {
                         children: category.label
                     }, category.id, false, {
                         fileName: "[project]/components/community.tsx",
-                        lineNumber: 216,
+                        lineNumber: 171,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 207,
+                lineNumber: 162,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4692,12 +4865,12 @@ function Community({ user }) {
                         children: "No discussions found. Be the first to start one!"
                     }, void 0, false, {
                         fileName: "[project]/components/community.tsx",
-                        lineNumber: 232,
+                        lineNumber: 186,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/components/community.tsx",
-                    lineNumber: 231,
+                    lineNumber: 185,
                     columnNumber: 11
                 }, this) : filteredThreads.map((thread)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         onClick: ()=>setSelectedThread(thread),
@@ -4710,7 +4883,7 @@ function Community({ user }) {
                                     children: thread.avatar
                                 }, void 0, false, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 242,
+                                    lineNumber: 196,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4726,7 +4899,7 @@ function Community({ user }) {
                                                             children: thread.category
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/community.tsx",
-                                                            lineNumber: 246,
+                                                            lineNumber: 200,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -4734,13 +4907,13 @@ function Community({ user }) {
                                                             children: thread.title
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/community.tsx",
-                                                            lineNumber: 249,
+                                                            lineNumber: 203,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/community.tsx",
-                                                    lineNumber: 245,
+                                                    lineNumber: 199,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4748,13 +4921,13 @@ function Community({ user }) {
                                                     children: thread.timestamp
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/community.tsx",
-                                                    lineNumber: 251,
+                                                    lineNumber: 205,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 244,
+                                            lineNumber: 198,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4762,7 +4935,7 @@ function Community({ user }) {
                                             children: thread.content
                                         }, void 0, false, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 253,
+                                            lineNumber: 207,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4776,7 +4949,7 @@ function Community({ user }) {
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/community.tsx",
-                                                    lineNumber: 255,
+                                                    lineNumber: 209,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4789,7 +4962,7 @@ function Community({ user }) {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/community.tsx",
-                                                            lineNumber: 257,
+                                                            lineNumber: 211,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4799,41 +4972,41 @@ function Community({ user }) {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/community.tsx",
-                                                            lineNumber: 258,
+                                                            lineNumber: 212,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/community.tsx",
-                                                    lineNumber: 256,
+                                                    lineNumber: 210,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/community.tsx",
-                                            lineNumber: 254,
+                                            lineNumber: 208,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/community.tsx",
-                                    lineNumber: 243,
+                                    lineNumber: 197,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/community.tsx",
-                            lineNumber: 241,
+                            lineNumber: 195,
                             columnNumber: 15
                         }, this)
                     }, thread.id, false, {
                         fileName: "[project]/components/community.tsx",
-                        lineNumber: 236,
+                        lineNumber: 190,
                         columnNumber: 13
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 229,
+                lineNumber: 183,
                 columnNumber: 7
             }, this),
             selectedThread && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$thread$2d$detail$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -4850,13 +5023,13 @@ function Community({ user }) {
                 }
             }, void 0, false, {
                 fileName: "[project]/components/community.tsx",
-                lineNumber: 270,
+                lineNumber: 224,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/community.tsx",
-        lineNumber: 128,
+        lineNumber: 83,
         columnNumber: 5
     }, this);
 }
@@ -5024,13 +5197,16 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/recharts/es6/component/Tooltip.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$ResponsiveContainer$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/recharts/es6/component/ResponsiveContainer.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trending$2d$up$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__TrendingUp$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/trending-up.js [app-ssr] (ecmascript) <export default as TrendingUp>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/language-context.tsx [app-ssr] (ecmascript)");
 "use client";
 ;
 ;
 ;
 ;
 ;
+;
 function Profile({ user, setUser }) {
+    const { language, setLanguage } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useLanguage"])();
     const [activeTab, setActiveTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("profile");
     const [formData, setFormData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])({
         name: "",
@@ -5215,7 +5391,7 @@ function Profile({ user, setUser }) {
                         children: "Your Profile"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 154,
+                        lineNumber: 157,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5223,13 +5399,55 @@ function Profile({ user, setUser }) {
                         children: "Manage your health information and preferences"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 155,
+                        lineNumber: 158,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 153,
+                lineNumber: 156,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex justify-end mb-4",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                    value: language,
+                    onChange: (e)=>setLanguage(e.target.value),
+                    className: "bg-white border border-border rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary shadow-sm",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                            value: "en",
+                            children: "English (EN)"
+                        }, void 0, false, {
+                            fileName: "[project]/components/profile.tsx",
+                            lineNumber: 168,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                            value: "hi",
+                            children: "Hindi (हिंदी)"
+                        }, void 0, false, {
+                            fileName: "[project]/components/profile.tsx",
+                            lineNumber: 169,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                            value: "mr",
+                            children: "Marathi (मराठी)"
+                        }, void 0, false, {
+                            fileName: "[project]/components/profile.tsx",
+                            lineNumber: 170,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/components/profile.tsx",
+                    lineNumber: 163,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/components/profile.tsx",
+                lineNumber: 162,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5240,12 +5458,12 @@ function Profile({ user, setUser }) {
                     wellness: wellness
                 }, void 0, false, {
                     fileName: "[project]/components/profile.tsx",
-                    lineNumber: 160,
+                    lineNumber: 176,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 159,
+                lineNumber: 175,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5277,12 +5495,12 @@ function Profile({ user, setUser }) {
                         children: tab.label
                     }, tab.id, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 172,
+                        lineNumber: 188,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 164,
+                lineNumber: 180,
                 columnNumber: 7
             }, this),
             activeTab === "profile" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -5296,7 +5514,7 @@ function Profile({ user, setUser }) {
                                 children: "Basic Information"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 194,
+                                lineNumber: 210,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5309,7 +5527,7 @@ function Profile({ user, setUser }) {
                                                 children: "Name"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 197,
+                                                lineNumber: 213,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5323,13 +5541,13 @@ function Profile({ user, setUser }) {
                                                 placeholder: "Your name"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 198,
+                                                lineNumber: 214,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 196,
+                                        lineNumber: 212,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5339,7 +5557,7 @@ function Profile({ user, setUser }) {
                                                 children: "Email"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 208,
+                                                lineNumber: 224,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5353,13 +5571,13 @@ function Profile({ user, setUser }) {
                                                 placeholder: "your@email.com"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 209,
+                                                lineNumber: 225,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 207,
+                                        lineNumber: 223,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5369,7 +5587,7 @@ function Profile({ user, setUser }) {
                                                 children: "Age"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 219,
+                                                lineNumber: 235,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5383,25 +5601,25 @@ function Profile({ user, setUser }) {
                                                 placeholder: "Your age"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 220,
+                                                lineNumber: 236,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 218,
+                                        lineNumber: 234,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 195,
+                                lineNumber: 211,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 193,
+                        lineNumber: 209,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5411,7 +5629,7 @@ function Profile({ user, setUser }) {
                                 children: "Cycle Information"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 233,
+                                lineNumber: 249,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5424,7 +5642,7 @@ function Profile({ user, setUser }) {
                                                 children: "Average Cycle Length (days)"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 236,
+                                                lineNumber: 252,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5439,13 +5657,13 @@ function Profile({ user, setUser }) {
                                                 max: "40"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 237,
+                                                lineNumber: 253,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 235,
+                                        lineNumber: 251,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5455,7 +5673,7 @@ function Profile({ user, setUser }) {
                                                 children: "Average Period Duration (days)"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 247,
+                                                lineNumber: 263,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5470,25 +5688,25 @@ function Profile({ user, setUser }) {
                                                 max: "10"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 250,
+                                                lineNumber: 266,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 246,
+                                        lineNumber: 262,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 234,
+                                lineNumber: 250,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 232,
+                        lineNumber: 248,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5498,7 +5716,7 @@ function Profile({ user, setUser }) {
                                 children: "Health Conditions"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 264,
+                                lineNumber: 280,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5519,7 +5737,7 @@ function Profile({ user, setUser }) {
                                                 className: "w-4 h-4 rounded border-border"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 268,
+                                                lineNumber: 284,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5527,24 +5745,24 @@ function Profile({ user, setUser }) {
                                                 children: condition
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 274,
+                                                lineNumber: 290,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, condition, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 267,
+                                        lineNumber: 283,
                                         columnNumber: 17
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 265,
+                                lineNumber: 281,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 263,
+                        lineNumber: 279,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5553,13 +5771,13 @@ function Profile({ user, setUser }) {
                         children: "Save Profile"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 280,
+                        lineNumber: 296,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 188,
+                lineNumber: 204,
                 columnNumber: 9
             }, this),
             activeTab === "notifications" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -5571,7 +5789,7 @@ function Profile({ user, setUser }) {
                         children: "Notification Preferences"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 295,
+                        lineNumber: 311,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5590,7 +5808,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 299,
+                                        lineNumber: 315,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5600,7 +5818,7 @@ function Profile({ user, setUser }) {
                                                 children: "Period Reminders"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 306,
+                                                lineNumber: 322,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5608,19 +5826,19 @@ function Profile({ user, setUser }) {
                                                 children: "Get notified when your period is approaching"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 307,
+                                                lineNumber: 323,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 305,
+                                        lineNumber: 321,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 298,
+                                lineNumber: 314,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5636,7 +5854,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 312,
+                                        lineNumber: 328,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5646,7 +5864,7 @@ function Profile({ user, setUser }) {
                                                 children: "Symptom Tracking Reminders"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 321,
+                                                lineNumber: 337,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5654,19 +5872,19 @@ function Profile({ user, setUser }) {
                                                 children: "Daily reminders to log your symptoms"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 322,
+                                                lineNumber: 338,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 320,
+                                        lineNumber: 336,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 311,
+                                lineNumber: 327,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5682,7 +5900,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 327,
+                                        lineNumber: 343,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5692,7 +5910,7 @@ function Profile({ user, setUser }) {
                                                 children: "Wellness Reminders"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 336,
+                                                lineNumber: 352,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5700,19 +5918,19 @@ function Profile({ user, setUser }) {
                                                 children: "Reminders to log water intake and exercise"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 337,
+                                                lineNumber: 353,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 335,
+                                        lineNumber: 351,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 326,
+                                lineNumber: 342,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5728,7 +5946,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 342,
+                                        lineNumber: 358,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5738,7 +5956,7 @@ function Profile({ user, setUser }) {
                                                 children: "Community Updates"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 351,
+                                                lineNumber: 367,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5746,19 +5964,19 @@ function Profile({ user, setUser }) {
                                                 children: "Notifications about new discussions and replies"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 352,
+                                                lineNumber: 368,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 350,
+                                        lineNumber: 366,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 341,
+                                lineNumber: 357,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5774,7 +5992,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 357,
+                                        lineNumber: 373,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5784,7 +6002,7 @@ function Profile({ user, setUser }) {
                                                 children: "Email Notifications"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 366,
+                                                lineNumber: 382,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5792,25 +6010,25 @@ function Profile({ user, setUser }) {
                                                 children: "Receive notifications via email"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 367,
+                                                lineNumber: 383,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 365,
+                                        lineNumber: 381,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 356,
+                                lineNumber: 372,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 297,
+                        lineNumber: 313,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5819,13 +6037,13 @@ function Profile({ user, setUser }) {
                         children: "Save Notification Settings"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 372,
+                        lineNumber: 388,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 291,
+                lineNumber: 307,
                 columnNumber: 9
             }, this),
             activeTab === "privacy" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -5837,7 +6055,7 @@ function Profile({ user, setUser }) {
                         children: "Privacy Settings"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 387,
+                        lineNumber: 403,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5856,7 +6074,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 391,
+                                        lineNumber: 407,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5866,7 +6084,7 @@ function Profile({ user, setUser }) {
                                                 children: "Private Profile"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 398,
+                                                lineNumber: 414,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5874,19 +6092,19 @@ function Profile({ user, setUser }) {
                                                 children: "Hide your profile from other community members"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 399,
+                                                lineNumber: 415,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 397,
+                                        lineNumber: 413,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 390,
+                                lineNumber: 406,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5902,7 +6120,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 404,
+                                        lineNumber: 420,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5912,7 +6130,7 @@ function Profile({ user, setUser }) {
                                                 children: "Allow Data Sharing for Research"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 411,
+                                                lineNumber: 427,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5920,19 +6138,19 @@ function Profile({ user, setUser }) {
                                                 children: "Help improve menstrual health research (anonymized)"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 412,
+                                                lineNumber: 428,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 410,
+                                        lineNumber: 426,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 403,
+                                lineNumber: 419,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -5948,7 +6166,7 @@ function Profile({ user, setUser }) {
                                         className: "w-4 h-4 rounded border-border"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 417,
+                                        lineNumber: 433,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5958,7 +6176,7 @@ function Profile({ user, setUser }) {
                                                 children: "Analytics Tracking"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 424,
+                                                lineNumber: 440,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5966,25 +6184,25 @@ function Profile({ user, setUser }) {
                                                 children: "Allow us to track app usage to improve features"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 425,
+                                                lineNumber: 441,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 423,
+                                        lineNumber: 439,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 416,
+                                lineNumber: 432,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 389,
+                        lineNumber: 405,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5993,13 +6211,13 @@ function Profile({ user, setUser }) {
                         children: "Save Privacy Settings"
                     }, void 0, false, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 430,
+                        lineNumber: 446,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 383,
+                lineNumber: 399,
                 columnNumber: 9
             }, this),
             activeTab === "data" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6013,7 +6231,7 @@ function Profile({ user, setUser }) {
                                 children: "Data Management"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 443,
+                                lineNumber: 459,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6021,7 +6239,7 @@ function Profile({ user, setUser }) {
                                 children: "Export all your health data in CSV format. This includes your profile information, cycle tracking, symptoms, and wellness logs."
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 444,
+                                lineNumber: 460,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -6030,13 +6248,13 @@ function Profile({ user, setUser }) {
                                 children: "Export My Data (CSV)"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 448,
+                                lineNumber: 464,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 442,
+                        lineNumber: 458,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6047,7 +6265,7 @@ function Profile({ user, setUser }) {
                                 children: "Data Storage"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 457,
+                                lineNumber: 473,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6060,7 +6278,7 @@ function Profile({ user, setUser }) {
                                                 children: "Cycles Tracked:"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 460,
+                                                lineNumber: 476,
                                                 columnNumber: 17
                                             }, this),
                                             " ",
@@ -6068,7 +6286,7 @@ function Profile({ user, setUser }) {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 459,
+                                        lineNumber: 475,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6078,7 +6296,7 @@ function Profile({ user, setUser }) {
                                                 children: "Symptom Entries:"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 463,
+                                                lineNumber: 479,
                                                 columnNumber: 17
                                             }, this),
                                             " ",
@@ -6086,7 +6304,7 @@ function Profile({ user, setUser }) {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 462,
+                                        lineNumber: 478,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6096,7 +6314,7 @@ function Profile({ user, setUser }) {
                                                 children: "Wellness Logs:"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 466,
+                                                lineNumber: 482,
                                                 columnNumber: 17
                                             }, this),
                                             " ",
@@ -6104,7 +6322,7 @@ function Profile({ user, setUser }) {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 465,
+                                        lineNumber: 481,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6112,19 +6330,19 @@ function Profile({ user, setUser }) {
                                         children: "All your data is stored locally on your device. We do not store your data on our servers unless you explicitly enable data sharing."
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 468,
+                                        lineNumber: 484,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 458,
+                                lineNumber: 474,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 456,
+                        lineNumber: 472,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6135,7 +6353,7 @@ function Profile({ user, setUser }) {
                                 children: "Danger Zone"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 476,
+                                lineNumber: 492,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6143,7 +6361,7 @@ function Profile({ user, setUser }) {
                                 children: "Permanently delete all your data. This action cannot be undone."
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 477,
+                                lineNumber: 493,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -6151,19 +6369,19 @@ function Profile({ user, setUser }) {
                                 children: "Delete All Data"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 480,
+                                lineNumber: 496,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 475,
+                        lineNumber: 491,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 441,
+                lineNumber: 457,
                 columnNumber: 9
             }, this),
             activeTab === "history" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6177,7 +6395,7 @@ function Profile({ user, setUser }) {
                                 children: "Symptom Trends"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 491,
+                                lineNumber: 507,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6193,7 +6411,7 @@ function Profile({ user, setUser }) {
                                                 stroke: "#f0f0f0"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 496,
+                                                lineNumber: 512,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$XAxis$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["XAxis"], {
@@ -6208,7 +6426,7 @@ function Profile({ user, setUser }) {
                                                     })
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 497,
+                                                lineNumber: 513,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$YAxis$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["YAxis"], {
@@ -6222,7 +6440,7 @@ function Profile({ user, setUser }) {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 502,
+                                                lineNumber: 518,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Tooltip"], {
@@ -6237,7 +6455,7 @@ function Profile({ user, setUser }) {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 503,
+                                                lineNumber: 519,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$Line$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Line"], {
@@ -6258,18 +6476,18 @@ function Profile({ user, setUser }) {
                                                 name: "Pain Level"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/profile.tsx",
-                                                lineNumber: 507,
+                                                lineNumber: 523,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 495,
+                                        lineNumber: 511,
                                         columnNumber: 19
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/profile.tsx",
-                                    lineNumber: 494,
+                                    lineNumber: 510,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "h-full flex flex-col items-center justify-center text-center text-gray-400",
@@ -6278,14 +6496,14 @@ function Profile({ user, setUser }) {
                                             className: "w-12 h-12 mb-4 opacity-50"
                                         }, void 0, false, {
                                             fileName: "[project]/components/profile.tsx",
-                                            lineNumber: 520,
+                                            lineNumber: 536,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                             children: "No symptom data tracked yet."
                                         }, void 0, false, {
                                             fileName: "[project]/components/profile.tsx",
-                                            lineNumber: 521,
+                                            lineNumber: 537,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6293,24 +6511,24 @@ function Profile({ user, setUser }) {
                                             children: "Start logging your symptoms to see trends here."
                                         }, void 0, false, {
                                             fileName: "[project]/components/profile.tsx",
-                                            lineNumber: 522,
+                                            lineNumber: 538,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/profile.tsx",
-                                    lineNumber: 519,
+                                    lineNumber: 535,
                                     columnNumber: 17
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 492,
+                                lineNumber: 508,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 490,
+                        lineNumber: 506,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6321,7 +6539,7 @@ function Profile({ user, setUser }) {
                                 children: "Recent Activity"
                             }, void 0, false, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 529,
+                                lineNumber: 545,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6338,7 +6556,7 @@ function Profile({ user, setUser }) {
                                                             children: new Date(log.date).getDate()
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/profile.tsx",
-                                                            lineNumber: 534,
+                                                            lineNumber: 550,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6348,7 +6566,7 @@ function Profile({ user, setUser }) {
                                                                     children: "Symptom Log"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/profile.tsx",
-                                                                    lineNumber: 538,
+                                                                    lineNumber: 554,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6356,19 +6574,19 @@ function Profile({ user, setUser }) {
                                                                     children: new Date(log.date).toDateString()
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/profile.tsx",
-                                                                    lineNumber: 539,
+                                                                    lineNumber: 555,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/profile.tsx",
-                                                            lineNumber: 537,
+                                                            lineNumber: 553,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/profile.tsx",
-                                                    lineNumber: 533,
+                                                    lineNumber: 549,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6383,7 +6601,7 @@ function Profile({ user, setUser }) {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/profile.tsx",
-                                                            lineNumber: 543,
+                                                            lineNumber: 559,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -6394,19 +6612,19 @@ function Profile({ user, setUser }) {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/profile.tsx",
-                                                            lineNumber: 544,
+                                                            lineNumber: 560,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/profile.tsx",
-                                                    lineNumber: 542,
+                                                    lineNumber: 558,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/components/profile.tsx",
-                                            lineNumber: 532,
+                                            lineNumber: 548,
                                             columnNumber: 17
                                         }, this)),
                                     symptoms.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6414,31 +6632,31 @@ function Profile({ user, setUser }) {
                                         children: "No recent activity"
                                     }, void 0, false, {
                                         fileName: "[project]/components/profile.tsx",
-                                        lineNumber: 548,
+                                        lineNumber: 564,
                                         columnNumber: 41
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/profile.tsx",
-                                lineNumber: 530,
+                                lineNumber: 546,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/profile.tsx",
-                        lineNumber: 528,
+                        lineNumber: 544,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/profile.tsx",
-                lineNumber: 489,
+                lineNumber: 505,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/profile.tsx",
-        lineNumber: 152,
+        lineNumber: 155,
         columnNumber: 5
     }, this);
 }
@@ -6452,7 +6670,12 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$firestore$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/firebase/firestore/dist/index.mjs [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/firestore/dist/index.node.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/firebase.ts [app-ssr] (ecmascript)");
 "use client";
+;
+;
 ;
 ;
 function ConsultationBooking({ onBookingComplete, user }) {
@@ -6510,32 +6733,46 @@ function ConsultationBooking({ onBookingComplete, user }) {
                 [name]: value
             }));
     };
-    const handleSubmit = (e)=>{
+    const handleSubmit = async (e)=>{
         e.preventDefault();
         if (!formData.doctorName || !formData.date || !formData.time || !formData.reason) {
             alert("Please fill in all required fields");
             return;
         }
-        const consultation = {
-            id: Date.now(),
-            ...formData,
-            bookedDate: new Date().toISOString(),
-            status: "confirmed"
-        };
-        onBookingComplete(consultation);
-        setSubmitted(true);
-        setTimeout(()=>{
-            setFormData({
-                doctorName: "",
-                doctorSpecialty: "",
-                consultationType: "video",
-                date: "",
-                time: "",
-                reason: "",
-                notes: ""
+        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser) {
+            alert("You must be logged in to book.");
+            return;
+        }
+        try {
+            const consultation = {
+                ...formData,
+                bookedDate: new Date().toISOString(),
+                status: "pending",
+                userId: __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser.uid
+            };
+            const docRef = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["addDoc"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["collection"])(__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["db"], "users", __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser.uid, "consultations"), consultation);
+            // Pass with ID
+            onBookingComplete({
+                id: docRef.id,
+                ...consultation
             });
-            setSubmitted(false);
-        }, 3000);
+            setSubmitted(true);
+            setTimeout(()=>{
+                setFormData({
+                    doctorName: "",
+                    doctorSpecialty: "",
+                    consultationType: "video",
+                    date: "",
+                    time: "",
+                    reason: "",
+                    notes: ""
+                });
+                setSubmitted(false);
+            }, 3000);
+        } catch (error) {
+            console.error("Error booking consultation:", error);
+            alert("Failed to book consultation. Please try again.");
+        }
     };
     if (submitted) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6546,7 +6783,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                     children: "✅"
                 }, void 0, false, {
                     fileName: "[project]/components/consultation-booking.tsx",
-                    lineNumber: 81,
+                    lineNumber: 99,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -6554,7 +6791,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                     children: "Consultation Booked!"
                 }, void 0, false, {
                     fileName: "[project]/components/consultation-booking.tsx",
-                    lineNumber: 82,
+                    lineNumber: 100,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6569,7 +6806,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/consultation-booking.tsx",
-                    lineNumber: 83,
+                    lineNumber: 101,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6577,13 +6814,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                     children: "You will receive a confirmation email shortly."
                 }, void 0, false, {
                     fileName: "[project]/components/consultation-booking.tsx",
-                    lineNumber: 86,
+                    lineNumber: 104,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/components/consultation-booking.tsx",
-            lineNumber: 80,
+            lineNumber: 98,
             columnNumber: 7
         }, this);
     }
@@ -6605,13 +6842,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "*"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 97,
+                                        lineNumber: 115,
                                         columnNumber: 27
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 96,
+                                lineNumber: 114,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -6625,7 +6862,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "Choose a doctor..."
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 105,
+                                        lineNumber: 123,
                                         columnNumber: 13
                                     }, this),
                                     doctors.map((doc)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -6637,19 +6874,19 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                             ]
                                         }, doc.name, true, {
                                             fileName: "[project]/components/consultation-booking.tsx",
-                                            lineNumber: 107,
+                                            lineNumber: 125,
                                             columnNumber: 15
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 99,
+                                lineNumber: 117,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 95,
+                        lineNumber: 113,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6659,7 +6896,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                 children: "Consultation Type"
                             }, void 0, false, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 116,
+                                lineNumber: 134,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -6673,7 +6910,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "Video Call"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 123,
+                                        lineNumber: 141,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -6681,7 +6918,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "Phone Call"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 124,
+                                        lineNumber: 142,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -6689,19 +6926,19 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "In-Person"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 125,
+                                        lineNumber: 143,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 117,
+                                lineNumber: 135,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 115,
+                        lineNumber: 133,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6715,13 +6952,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "*"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 132,
+                                        lineNumber: 150,
                                         columnNumber: 28
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 131,
+                                lineNumber: 149,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -6733,13 +6970,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                 className: "w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             }, void 0, false, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 134,
+                                lineNumber: 152,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 130,
+                        lineNumber: 148,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6753,13 +6990,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                         children: "*"
                                     }, void 0, false, {
                                         fileName: "[project]/components/consultation-booking.tsx",
-                                        lineNumber: 147,
+                                        lineNumber: 165,
                                         columnNumber: 28
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 146,
+                                lineNumber: 164,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -6770,19 +7007,19 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                 className: "w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             }, void 0, false, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 149,
+                                lineNumber: 167,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 145,
+                        lineNumber: 163,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/consultation-booking.tsx",
-                lineNumber: 93,
+                lineNumber: 111,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6796,13 +7033,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                 children: "*"
                             }, void 0, false, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 162,
+                                lineNumber: 180,
                                 columnNumber: 35
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 161,
+                        lineNumber: 179,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -6816,7 +7053,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                 children: "Select a reason..."
                             }, void 0, false, {
                                 fileName: "[project]/components/consultation-booking.tsx",
-                                lineNumber: 170,
+                                lineNumber: 188,
                                 columnNumber: 11
                             }, this),
                             reasons.map((reason)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -6824,19 +7061,19 @@ function ConsultationBooking({ onBookingComplete, user }) {
                                     children: reason
                                 }, reason, false, {
                                     fileName: "[project]/components/consultation-booking.tsx",
-                                    lineNumber: 172,
+                                    lineNumber: 190,
                                     columnNumber: 13
                                 }, this))
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 164,
+                        lineNumber: 182,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/consultation-booking.tsx",
-                lineNumber: 160,
+                lineNumber: 178,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6846,7 +7083,7 @@ function ConsultationBooking({ onBookingComplete, user }) {
                         children: "Additional Notes"
                     }, void 0, false, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 181,
+                        lineNumber: 199,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -6858,13 +7095,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                         className: "w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     }, void 0, false, {
                         fileName: "[project]/components/consultation-booking.tsx",
-                        lineNumber: 182,
+                        lineNumber: 200,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/consultation-booking.tsx",
-                lineNumber: 180,
+                lineNumber: 198,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6876,19 +7113,19 @@ function ConsultationBooking({ onBookingComplete, user }) {
                             children: "📌 Note:"
                         }, void 0, false, {
                             fileName: "[project]/components/consultation-booking.tsx",
-                            lineNumber: 195,
+                            lineNumber: 213,
                             columnNumber: 11
                         }, this),
                         " This is a booking request. The doctor will confirm your appointment within 24 hours. You'll receive a confirmation email with meeting details."
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/consultation-booking.tsx",
-                    lineNumber: 194,
+                    lineNumber: 212,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/consultation-booking.tsx",
-                lineNumber: 193,
+                lineNumber: 211,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -6897,13 +7134,13 @@ function ConsultationBooking({ onBookingComplete, user }) {
                 children: "Request Consultation"
             }, void 0, false, {
                 fileName: "[project]/components/consultation-booking.tsx",
-                lineNumber: 201,
+                lineNumber: 219,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/consultation-booking.tsx",
-        lineNumber: 92,
+        lineNumber: 110,
         columnNumber: 5
     }, this);
 }
@@ -7218,376 +7455,354 @@ __turbopack_context__.s([
     ()=>DoctorDirectory
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-ssr] (ecmascript) <export default as MapPin>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$star$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Star$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/star.js [app-ssr] (ecmascript) <export default as Star>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$phone$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Phone$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/phone.js [app-ssr] (ecmascript) <export default as Phone>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$globe$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Globe$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/globe.js [app-ssr] (ecmascript) <export default as Globe>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$award$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Award$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/award.js [app-ssr] (ecmascript) <export default as Award>");
 "use client";
 ;
 ;
+const DOCTORS = [
+    {
+        id: 1,
+        name: "Dr. Anjali Sharma",
+        specialty: "Gynecologist & Obstetrician",
+        experience: "15+ Years",
+        rating: 4.8,
+        location: "Mumbai, Maharashtra",
+        languages: [
+            "English",
+            "Hindi",
+            "Marathi"
+        ],
+        image: "👩‍⚕️",
+        tags: [
+            "PCOS Specialist",
+            "High Risk Pregnancy"
+        ]
+    },
+    {
+        id: 2,
+        name: "Dr. Priya Desai",
+        specialty: "Reproductive Endocrinologist",
+        experience: "12+ Years",
+        rating: 4.9,
+        location: "Bangalore, Karnataka",
+        languages: [
+            "English",
+            "Kannada",
+            "Hindi"
+        ],
+        image: "👩‍⚕️",
+        tags: [
+            "Infertility",
+            "Endometriosis"
+        ]
+    },
+    {
+        id: 3,
+        name: "Dr. Rajesh Kumar",
+        specialty: "Ayurvedic Practitioner",
+        experience: "20+ Years",
+        rating: 4.7,
+        location: "Delhi, NCR",
+        languages: [
+            "English",
+            "Hindi"
+        ],
+        image: "👨‍⚕️",
+        tags: [
+            "Holistic Health",
+            "Menstrual Disorders"
+        ]
+    }
+];
+const AYURVEDA_TIPS = [
+    {
+        title: "Ashoka Tree Bark (Saraca asoca)",
+        benefit: "Known as a 'friend of women', it helps manage heavy bleeding and pain.",
+        usage: "Consult an Ayurvedic doctor for dosage (usually decoction/powder)."
+    },
+    {
+        title: "Shatavari (Asparagus racemosus)",
+        benefit: "Rejuvenating herb that balances hormones and supports reproductive health.",
+        usage: "Often taken with milk or warm water."
+    },
+    {
+        title: "Ginger & Jaggery Tea",
+        benefit: "Helps induce periods and relieve cramps due to its warming nature.",
+        usage: "Drink warm tea during the first few days of the cycle."
+    }
+];
 function DoctorDirectory() {
-    const [selectedSpecialty, setSelectedSpecialty] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("all");
-    const doctors = [
-        {
-            id: 1,
-            name: "Dr. Priya Sharma",
-            specialty: "General Gynecology",
-            experience: "12 years",
-            rating: 4.8,
-            reviews: 156,
-            languages: [
-                "English",
-                "Hindi"
-            ],
-            availability: "Mon-Fri, 10 AM - 6 PM",
-            consultationFee: "₹500",
-            bio: "Specialized in comprehensive women's health and preventive care."
-        },
-        {
-            id: 2,
-            name: "Dr. Anjali Patel",
-            specialty: "Reproductive Health",
-            experience: "8 years",
-            rating: 4.9,
-            reviews: 203,
-            languages: [
-                "English",
-                "Gujarati"
-            ],
-            availability: "Tue-Sat, 11 AM - 7 PM",
-            consultationFee: "₹600",
-            bio: "Expert in fertility planning and reproductive health management."
-        },
-        {
-            id: 3,
-            name: "Dr. Meera Singh",
-            specialty: "PCOS Specialist",
-            experience: "10 years",
-            rating: 4.7,
-            reviews: 189,
-            languages: [
-                "English",
-                "Hindi",
-                "Punjabi"
-            ],
-            availability: "Mon-Thu, 9 AM - 5 PM",
-            consultationFee: "₹550",
-            bio: "Specialized in PCOS management and hormonal health."
-        },
-        {
-            id: 4,
-            name: "Dr. Kavya Desai",
-            specialty: "Endometriosis Expert",
-            experience: "9 years",
-            rating: 4.8,
-            reviews: 142,
-            languages: [
-                "English",
-                "Marathi"
-            ],
-            availability: "Wed-Sun, 2 PM - 8 PM",
-            consultationFee: "₹600",
-            bio: "Dedicated to endometriosis diagnosis and pain management."
-        },
-        {
-            id: 5,
-            name: "Dr. Neha Gupta",
-            specialty: "Fertility Specialist",
-            experience: "11 years",
-            rating: 4.9,
-            reviews: 267,
-            languages: [
-                "English",
-                "Hindi"
-            ],
-            availability: "Mon-Sat, 10 AM - 6 PM",
-            consultationFee: "₹700",
-            bio: "Expert in fertility treatments and family planning."
-        },
-        {
-            id: 6,
-            name: "Dr. Ritu Verma",
-            specialty: "General Gynecology",
-            experience: "7 years",
-            rating: 4.6,
-            reviews: 98,
-            languages: [
-                "English",
-                "Hindi"
-            ],
-            availability: "Tue-Fri, 3 PM - 9 PM",
-            consultationFee: "₹450",
-            bio: "Compassionate care for all gynecological concerns."
-        }
-    ];
-    const specialties = [
-        "all",
-        "General Gynecology",
-        "Reproductive Health",
-        "PCOS Specialist",
-        "Endometriosis Expert",
-        "Fertility Specialist"
-    ];
-    const filteredDoctors = selectedSpecialty === "all" ? doctors : doctors.filter((doc)=>doc.specialty === selectedSpecialty);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "space-y-6",
+        className: "space-y-8",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                        className: "text-lg font-semibold text-foreground mb-4",
-                        children: "Filter by Specialty"
+                        className: "text-xl font-bold text-gray-900 mb-4",
+                        children: "Find a Specialist"
                     }, void 0, false, {
                         fileName: "[project]/components/doctor-directory.tsx",
-                        lineNumber: 98,
+                        lineNumber: 64,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex flex-wrap gap-2",
-                        children: specialties.map((specialty)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                onClick: ()=>setSelectedSpecialty(specialty),
-                                className: `px-4 py-2 rounded-full font-semibold transition-smooth ${selectedSpecialty === specialty ? "bg-primary text-white" : "bg-gray-100 text-foreground hover:bg-gray-200"}`,
-                                children: specialty === "all" ? "All Doctors" : specialty
-                            }, specialty, false, {
+                        className: "grid gap-6 md:grid-cols-2 lg:grid-cols-3",
+                        children: DOCTORS.map((doctor)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-all",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex items-start justify-between mb-4",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-3xl",
+                                                children: doctor.image
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 69,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg text-yellow-700 text-sm font-bold",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$star$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Star$3e$__["Star"], {
+                                                        className: "w-4 h-4 fill-current"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/doctor-directory.tsx",
+                                                        lineNumber: 73,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    " ",
+                                                    doctor.rating
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 72,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 68,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
+                                        className: "text-lg font-bold text-gray-900 mb-1",
+                                        children: doctor.name
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 77,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-blue-600 font-medium text-sm mb-3",
+                                        children: doctor.specialty
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 78,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "space-y-2 text-sm text-gray-500 mb-4",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-2",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$award$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Award$3e$__["Award"], {
+                                                        className: "w-4 h-4"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/doctor-directory.tsx",
+                                                        lineNumber: 82,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    " ",
+                                                    doctor.experience
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 81,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-2",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__["MapPin"], {
+                                                        className: "w-4 h-4"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/doctor-directory.tsx",
+                                                        lineNumber: 85,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    " ",
+                                                    doctor.location
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 84,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-2",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$globe$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Globe$3e$__["Globe"], {
+                                                        className: "w-4 h-4"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/doctor-directory.tsx",
+                                                        lineNumber: 88,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    " ",
+                                                    doctor.languages.join(", ")
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 87,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 80,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex flex-wrap gap-2 mb-6",
+                                        children: doctor.tags.map((tag)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg font-medium",
+                                                children: tag
+                                            }, tag, false, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 94,
+                                                columnNumber: 19
+                                            }, this))
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 92,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex gap-2",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: "flex-1 bg-primary text-white py-2 rounded-lg font-semibold hover:bg-primary/90 transition-colors",
+                                                children: "Book Visit"
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 101,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: "p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$phone$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Phone$3e$__["Phone"], {
+                                                    className: "w-5 h-5"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/doctor-directory.tsx",
+                                                    lineNumber: 105,
+                                                    columnNumber: 19
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/doctor-directory.tsx",
+                                                lineNumber: 104,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 100,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, doctor.id, true, {
                                 fileName: "[project]/components/doctor-directory.tsx",
-                                lineNumber: 101,
+                                lineNumber: 67,
                                 columnNumber: 13
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/components/doctor-directory.tsx",
-                        lineNumber: 99,
+                        lineNumber: 65,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/doctor-directory.tsx",
-                lineNumber: 97,
+                lineNumber: 63,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "grid grid-cols-1 md:grid-cols-2 gap-6",
-                children: filteredDoctors.map((doctor)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "border border-border rounded-lg p-6 hover:shadow-lg transition-smooth",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "flex items-start justify-between mb-4",
+                className: "bg-green-50 border border-green-100 rounded-2xl p-8",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                        className: "text-xl font-bold text-green-800 mb-6 flex items-center gap-2",
+                        children: "🍃 Ayurvedic Wisdom for Menstrual Health"
+                    }, void 0, false, {
+                        fileName: "[project]/components/doctor-directory.tsx",
+                        lineNumber: 115,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "grid gap-6 md:grid-cols-3",
+                        children: AYURVEDA_TIPS.map((tip, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "bg-white/80 p-5 rounded-xl border border-green-100",
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
-                                                className: "text-lg font-semibold text-foreground",
-                                                children: doctor.name
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 121,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-sm text-primary font-semibold",
-                                                children: doctor.specialty
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 122,
-                                                columnNumber: 17
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
+                                        className: "font-bold text-green-900 mb-2",
+                                        children: tip.title
+                                    }, void 0, false, {
                                         fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 120,
+                                        lineNumber: 121,
                                         columnNumber: 15
                                     }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "text-right",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm text-green-800 mb-3",
+                                        children: tip.benefit
+                                    }, void 0, false, {
+                                        fileName: "[project]/components/doctor-directory.tsx",
+                                        lineNumber: 122,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-xs text-green-600 font-medium bg-green-100/50 p-2 rounded",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "flex items-center gap-1 justify-end mb-1",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-yellow-500",
-                                                        children: "⭐"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/components/doctor-directory.tsx",
-                                                        lineNumber: 126,
-                                                        columnNumber: 19
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "font-semibold text-foreground",
-                                                        children: doctor.rating
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/components/doctor-directory.tsx",
-                                                        lineNumber: 127,
-                                                        columnNumber: 19
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 125,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                                className: "text-xs text-muted-foreground",
-                                                children: [
-                                                    "(",
-                                                    doctor.reviews,
-                                                    " reviews)"
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 129,
-                                                columnNumber: 17
-                                            }, this)
+                                            "Usage: ",
+                                            tip.usage
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 124,
+                                        lineNumber: 123,
                                         columnNumber: 15
                                     }, this)
                                 ]
-                            }, void 0, true, {
+                            }, i, true, {
                                 fileName: "[project]/components/doctor-directory.tsx",
-                                lineNumber: 119,
+                                lineNumber: 120,
                                 columnNumber: 13
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "text-sm text-foreground mb-4",
-                                children: doctor.bio
-                            }, void 0, false, {
-                                fileName: "[project]/components/doctor-directory.tsx",
-                                lineNumber: 133,
-                                columnNumber: 13
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "space-y-2 mb-4 text-sm",
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-muted-foreground",
-                                                children: "📅"
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 137,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-foreground",
-                                                children: [
-                                                    doctor.experience,
-                                                    " experience"
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 138,
-                                                columnNumber: 17
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 136,
-                                        columnNumber: 15
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-muted-foreground",
-                                                children: "🕐"
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 141,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-foreground",
-                                                children: doctor.availability
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 142,
-                                                columnNumber: 17
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 140,
-                                        columnNumber: 15
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-muted-foreground",
-                                                children: "💬"
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 145,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-foreground",
-                                                children: doctor.languages.join(", ")
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 146,
-                                                columnNumber: 17
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 144,
-                                        columnNumber: 15
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-2",
-                                        children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-muted-foreground",
-                                                children: "💰"
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 149,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "font-semibold text-foreground",
-                                                children: doctor.consultationFee
-                                            }, void 0, false, {
-                                                fileName: "[project]/components/doctor-directory.tsx",
-                                                lineNumber: 150,
-                                                columnNumber: 17
-                                            }, this)
-                                        ]
-                                    }, void 0, true, {
-                                        fileName: "[project]/components/doctor-directory.tsx",
-                                        lineNumber: 148,
-                                        columnNumber: 15
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/components/doctor-directory.tsx",
-                                lineNumber: 135,
-                                columnNumber: 13
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                className: "w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-smooth",
-                                children: "Book Consultation"
-                            }, void 0, false, {
-                                fileName: "[project]/components/doctor-directory.tsx",
-                                lineNumber: 154,
-                                columnNumber: 13
-                            }, this)
-                        ]
-                    }, doctor.id, true, {
+                            }, this))
+                    }, void 0, false, {
                         fileName: "[project]/components/doctor-directory.tsx",
                         lineNumber: 118,
-                        columnNumber: 11
-                    }, this))
-            }, void 0, false, {
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-xs text-green-600 mt-6 text-center italic",
+                        children: "Disclaimer: Ayurvedic remedies should be taken under the guidance of a qualified practitioner."
+                    }, void 0, false, {
+                        fileName: "[project]/components/doctor-directory.tsx",
+                        lineNumber: 129,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
                 fileName: "[project]/components/doctor-directory.tsx",
-                lineNumber: 116,
+                lineNumber: 114,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/doctor-directory.tsx",
-        lineNumber: 96,
+        lineNumber: 61,
         columnNumber: 5
     }, this);
 }
@@ -7604,7 +7819,12 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$consultation$2d$booking$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/consultation-booking.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$consultation$2d$history$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/consultation-history.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$doctor$2d$directory$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/doctor-directory.tsx [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$firestore$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/firebase/firestore/dist/index.mjs [app-ssr] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/firestore/dist/index.node.mjs [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/firebase.ts [app-ssr] (ecmascript)");
 "use client";
+;
+;
 ;
 ;
 ;
@@ -7614,26 +7834,21 @@ function GynecologistConsultation({ user }) {
     const [activeTab, setActiveTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("book");
     const [consultations, setConsultations] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        try {
-            const saved = localStorage.getItem("saukhya_consultations");
-            if (saved) {
-                setConsultations(JSON.parse(saved));
-            }
-        } catch (error) {
-            console.log("[v0] Error loading consultations:", error);
-        }
+        if (!__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser) return;
+        const q = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["query"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["collection"])(__TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["db"], "users", __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["auth"].currentUser.uid, "consultations"), (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["orderBy"])("bookedDate", "desc"));
+        const unsubscribe = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$node$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["onSnapshot"])(q, (snapshot)=>{
+            const fetched = snapshot.docs.map((doc)=>({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+            setConsultations(fetched);
+        }, (error)=>{
+            console.log("Error loading consultations:", error);
+        });
+        return ()=>unsubscribe();
     }, []);
     const handleBookingComplete = (newConsultation)=>{
-        const updated = [
-            ...consultations,
-            newConsultation
-        ];
-        setConsultations(updated);
-        try {
-            localStorage.setItem("saukhya_consultations", JSON.stringify(updated));
-        } catch (error) {
-            console.log("[v0] Error saving consultation:", error);
-        }
+        // No need to manually update state, onSnapshot will handle it
         setActiveTab("history");
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7682,7 +7897,7 @@ function GynecologistConsultation({ user }) {
                         children: "👩‍⚕️ Find Doctors"
                     }, void 0, false, {
                         fileName: "[project]/components/gynecologist-consultation.tsx",
-                        lineNumber: 57,
+                        lineNumber: 56,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -7695,7 +7910,7 @@ function GynecologistConsultation({ user }) {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/gynecologist-consultation.tsx",
-                        lineNumber: 67,
+                        lineNumber: 65,
                         columnNumber: 9
                     }, this)
                 ]
@@ -7712,25 +7927,25 @@ function GynecologistConsultation({ user }) {
                         user: user
                     }, void 0, false, {
                         fileName: "[project]/components/gynecologist-consultation.tsx",
-                        lineNumber: 81,
+                        lineNumber: 78,
                         columnNumber: 34
                     }, this),
                     activeTab === "doctors" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$doctor$2d$directory$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                         fileName: "[project]/components/gynecologist-consultation.tsx",
-                        lineNumber: 82,
+                        lineNumber: 79,
                         columnNumber: 37
                     }, this),
                     activeTab === "history" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$consultation$2d$history$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                         consultations: consultations
                     }, void 0, false, {
                         fileName: "[project]/components/gynecologist-consultation.tsx",
-                        lineNumber: 83,
+                        lineNumber: 80,
                         columnNumber: 37
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/gynecologist-consultation.tsx",
-                lineNumber: 80,
+                lineNumber: 77,
                 columnNumber: 7
             }, this)
         ]
@@ -7775,14 +7990,18 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$brain$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Brain$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/brain.js [app-ssr] (ecmascript) <export default as Brain>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$cloud$2d$fog$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__CloudFog$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/cloud-fog.js [app-ssr] (ecmascript) <export default as CloudFog>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$sparkles$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Sparkles$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/sparkles.js [app-ssr] (ecmascript) <export default as Sparkles>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/language-context.tsx [app-ssr] (ecmascript)");
 "use client";
 ;
 ;
 ;
 ;
 ;
+;
 function OnboardingFlow({ onComplete }) {
-    const [step, setStep] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(0);
+    const { t, setLanguage, language } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useLanguage"])();
+    const [step, setStep] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(-1) // Start at -1 for Language Selection
+    ;
     const [userData, setUserData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])({
         name: "",
         age: "",
@@ -7795,6 +8014,7 @@ function OnboardingFlow({ onComplete }) {
         painLevel: "5",
         goals: []
     });
+    // ... (keeping constants same for now) ...
     const conditions = [
         {
             id: "pcos",
@@ -7837,10 +8057,6 @@ function OnboardingFlow({ onComplete }) {
             icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2d$big$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle$3e$__["CheckCircle"]
         }
     ];
-    // Note: Using some generic icons for these if specifics aren't imported or available, otherwise mapping them best effort
-    // Let's add the imports needed:
-    // Re-define imports above to include what we need. 
-    // Zap, HeartPulse, CheckCircle needed.
     const symptoms = [
         {
             id: "cramps",
@@ -7989,17 +8205,18 @@ function OnboardingFlow({ onComplete }) {
         }
     };
     const handleBack = ()=>{
-        if (step > 0) {
+        if (step > -1) {
             setStep(step - 1);
         }
     };
-    const progressPercent = (step + 1) / 7 * 100;
+    const progressPercent = (step + 1) / 8 * 100 // Updated denominator
+    ;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
             className: "w-full max-w-2xl bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100",
             children: [
-                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                step > -1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "bg-white p-6 border-b border-gray-100",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8014,8 +8231,8 @@ function OnboardingFlow({ onComplete }) {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 144,
-                                    columnNumber: 13
+                                    lineNumber: 141,
+                                    columnNumber: 15
                                 }, this),
                                 step > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                     onClick: handleBack,
@@ -8024,19 +8241,19 @@ function OnboardingFlow({ onComplete }) {
                                         className: "w-5 h-5"
                                     }, void 0, false, {
                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                        lineNumber: 147,
-                                        columnNumber: 17
+                                        lineNumber: 144,
+                                        columnNumber: 19
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 146,
-                                    columnNumber: 15
+                                    lineNumber: 143,
+                                    columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 143,
-                            columnNumber: 11
+                            lineNumber: 140,
+                            columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "h-2 w-full bg-gray-100 rounded-full overflow-hidden",
@@ -8047,23 +8264,136 @@ function OnboardingFlow({ onComplete }) {
                                 }
                             }, void 0, false, {
                                 fileName: "[project]/components/onboarding-flow.tsx",
-                                lineNumber: 152,
-                                columnNumber: 13
+                                lineNumber: 149,
+                                columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 151,
-                            columnNumber: 11
+                            lineNumber: 148,
+                            columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/onboarding-flow.tsx",
-                    lineNumber: 142,
-                    columnNumber: 9
+                    lineNumber: 139,
+                    columnNumber: 11
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "p-8 min-h-[400px] flex flex-col justify-center",
                     children: [
+                        step === -1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "text-center",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                    className: "text-3xl font-bold text-gray-900 mb-8",
+                                    children: "Select Language / भाषा चुनें"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                    lineNumber: 163,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "grid gap-4 max-w-md mx-auto",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                            onClick: ()=>{
+                                                setLanguage('en');
+                                                setStep(0);
+                                            },
+                                            className: "flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-lg font-bold text-gray-700 group-hover:text-primary",
+                                                    children: "English"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 166,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-3xl",
+                                                    children: "🇺🇸"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 167,
+                                                    columnNumber: 19
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/components/onboarding-flow.tsx",
+                                            lineNumber: 165,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                            onClick: ()=>{
+                                                setLanguage('hi');
+                                                setStep(0);
+                                            },
+                                            className: "flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-lg font-bold text-gray-700 group-hover:text-primary",
+                                                    children: "हिंदी (Hindi)"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 170,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-3xl",
+                                                    children: "🇮🇳"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 171,
+                                                    columnNumber: 19
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/components/onboarding-flow.tsx",
+                                            lineNumber: 169,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                            onClick: ()=>{
+                                                setLanguage('mr');
+                                                setStep(0);
+                                            },
+                                            className: "flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-lg font-bold text-gray-700 group-hover:text-primary",
+                                                    children: "मराठी (Marathi)"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 174,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-3xl",
+                                                    children: "🇮🇳"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                                    lineNumber: 175,
+                                                    columnNumber: 19
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/components/onboarding-flow.tsx",
+                                            lineNumber: 173,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/components/onboarding-flow.tsx",
+                                    lineNumber: 164,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/onboarding-flow.tsx",
+                            lineNumber: 162,
+                            columnNumber: 13
+                        }, this),
                         step === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "text-center",
                             children: [
@@ -8073,52 +8403,53 @@ function OnboardingFlow({ onComplete }) {
                                         className: "w-10 h-10 text-primary"
                                     }, void 0, false, {
                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                        lineNumber: 166,
+                                        lineNumber: 185,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 165,
+                                    lineNumber: 184,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                                     className: "text-3xl font-bold text-gray-900 mb-4",
-                                    children: "Welcome to Saukhya"
+                                    children: t('welcome')
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 168,
+                                    lineNumber: 187,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                     className: "text-lg text-gray-500 mb-8 max-w-md mx-auto",
-                                    children: "Your intelligent companion for menstrual health. Let's personalize your experience."
+                                    children: t('welcomeSubtitle')
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 169,
+                                    lineNumber: 188,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                     onClick: handleNext,
                                     className: "group relative inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-white bg-primary rounded-full hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5",
                                     children: [
-                                        "Get Started ",
+                                        t('getStarted'),
+                                        " ",
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
                                             className: "ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 173,
-                                            columnNumber: 29
+                                            lineNumber: 192,
+                                            columnNumber: 35
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 172,
+                                    lineNumber: 191,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 164,
+                            lineNumber: 183,
                             columnNumber: 13
                         }, this),
                         step === 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8126,10 +8457,10 @@ function OnboardingFlow({ onComplete }) {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                     className: "text-2xl font-bold text-gray-900 mb-2",
-                                    children: "Tell us about yourself"
+                                    children: t('tellUsAboutYourself')
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 181,
+                                    lineNumber: 200,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8139,10 +8470,10 @@ function OnboardingFlow({ onComplete }) {
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                     className: "block text-sm font-medium text-gray-700 mb-1",
-                                                    children: "What should we call you?"
+                                                    children: t('nameLabel')
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 184,
+                                                    lineNumber: 203,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -8156,23 +8487,23 @@ function OnboardingFlow({ onComplete }) {
                                                     placeholder: "Your Name"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 185,
+                                                    lineNumber: 204,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 183,
+                                            lineNumber: 202,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                     className: "block text-sm font-medium text-gray-700 mb-1",
-                                                    children: "How old are you?"
+                                                    children: t('ageLabel')
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 194,
+                                                    lineNumber: 213,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -8186,25 +8517,25 @@ function OnboardingFlow({ onComplete }) {
                                                     placeholder: "Age"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 195,
+                                                    lineNumber: 214,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 193,
+                                            lineNumber: 212,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 182,
+                                    lineNumber: 201,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 180,
+                            lineNumber: 199,
                             columnNumber: 13
                         }, this),
                         step === 2 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8215,7 +8546,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "Cycle Details"
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 210,
+                                    lineNumber: 229,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -8223,7 +8554,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "These help us predict your next period correctly."
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 211,
+                                    lineNumber: 230,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8236,7 +8567,7 @@ function OnboardingFlow({ onComplete }) {
                                                     children: "Cycle Length"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 215,
+                                                    lineNumber: 234,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -8249,13 +8580,13 @@ function OnboardingFlow({ onComplete }) {
                                                     className: "w-full px-4 py-3 rounded-xl border border-gray-200 focus:primary-ring"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 216,
+                                                    lineNumber: 235,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 214,
+                                            lineNumber: 233,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8265,7 +8596,7 @@ function OnboardingFlow({ onComplete }) {
                                                     children: "Period Duration"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 219,
+                                                    lineNumber: 238,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -8278,19 +8609,19 @@ function OnboardingFlow({ onComplete }) {
                                                     className: "w-full px-4 py-3 rounded-xl border border-gray-200 focus:primary-ring"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 220,
+                                                    lineNumber: 239,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 218,
+                                            lineNumber: 237,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 213,
+                                    lineNumber: 232,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8300,7 +8631,7 @@ function OnboardingFlow({ onComplete }) {
                                             children: "Last Period Start"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 225,
+                                            lineNumber: 244,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -8313,13 +8644,13 @@ function OnboardingFlow({ onComplete }) {
                                             className: "w-full px-4 py-3 rounded-xl border border-gray-200 focus:primary-ring"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 226,
+                                            lineNumber: 245,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 224,
+                                    lineNumber: 243,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8329,7 +8660,7 @@ function OnboardingFlow({ onComplete }) {
                                             children: "Usually Flow"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 230,
+                                            lineNumber: 249,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8348,24 +8679,24 @@ function OnboardingFlow({ onComplete }) {
                                                     children: flow.replace("-", " ")
                                                 }, flow, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 233,
+                                                    lineNumber: 252,
                                                     columnNumber: 21
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 231,
+                                            lineNumber: 250,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 229,
+                                    lineNumber: 248,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 209,
+                            lineNumber: 228,
                             columnNumber: 13
                         }, this),
                         step === 3 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8375,7 +8706,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "Diagnosed Conditions"
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 249,
+                                    lineNumber: 268,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8393,12 +8724,12 @@ function OnboardingFlow({ onComplete }) {
                                                         className: "w-6 h-6"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                                        lineNumber: 261,
+                                                        lineNumber: 280,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 260,
+                                                    lineNumber: 279,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -8406,7 +8737,7 @@ function OnboardingFlow({ onComplete }) {
                                                     children: c.label
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 263,
+                                                    lineNumber: 282,
                                                     columnNumber: 23
                                                 }, this),
                                                 isSelected && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8415,30 +8746,30 @@ function OnboardingFlow({ onComplete }) {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                                        lineNumber: 264,
+                                                        lineNumber: 283,
                                                         columnNumber: 91
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 264,
+                                                    lineNumber: 283,
                                                     columnNumber: 38
                                                 }, this)
                                             ]
                                         }, c.id, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 255,
+                                            lineNumber: 274,
                                             columnNumber: 21
                                         }, this);
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 250,
+                                    lineNumber: 269,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 248,
+                            lineNumber: 267,
                             columnNumber: 13
                         }, this),
                         step === 4 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8448,7 +8779,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "Common Symptoms"
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 275,
+                                    lineNumber: 294,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8466,12 +8797,12 @@ function OnboardingFlow({ onComplete }) {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                                        lineNumber: 287,
+                                                        lineNumber: 306,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 286,
+                                                    lineNumber: 305,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -8479,25 +8810,25 @@ function OnboardingFlow({ onComplete }) {
                                                     children: s.label
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 289,
+                                                    lineNumber: 308,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, s.id, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 281,
+                                            lineNumber: 300,
                                             columnNumber: 21
                                         }, this);
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 276,
+                                    lineNumber: 295,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 274,
+                            lineNumber: 293,
                             columnNumber: 13
                         }, this),
                         step === 5 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8508,7 +8839,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "Typical Pain Level"
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 300,
+                                    lineNumber: 319,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8519,7 +8850,7 @@ function OnboardingFlow({ onComplete }) {
                                             children: userData.painLevel
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 303,
+                                            lineNumber: 322,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -8527,13 +8858,13 @@ function OnboardingFlow({ onComplete }) {
                                             children: "Scale of 1 to 10"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 304,
+                                            lineNumber: 323,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 302,
+                                    lineNumber: 321,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8552,7 +8883,7 @@ function OnboardingFlow({ onComplete }) {
                                             className: "w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary-light"
                                         }, void 0, false, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 308,
+                                            lineNumber: 327,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8562,32 +8893,32 @@ function OnboardingFlow({ onComplete }) {
                                                     children: "No Pain"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 316,
+                                                    lineNumber: 335,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     children: "Unbearable"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 317,
+                                                    lineNumber: 336,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 315,
+                                            lineNumber: 334,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 307,
+                                    lineNumber: 326,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 299,
+                            lineNumber: 318,
                             columnNumber: 13
                         }, this),
                         step === 6 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8597,7 +8928,7 @@ function OnboardingFlow({ onComplete }) {
                                     children: "Your Goals"
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 326,
+                                    lineNumber: 345,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8615,12 +8946,12 @@ function OnboardingFlow({ onComplete }) {
                                                         className: "w-6 h-6"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/onboarding-flow.tsx",
-                                                        lineNumber: 338,
+                                                        lineNumber: 357,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 337,
+                                                    lineNumber: 356,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8631,7 +8962,7 @@ function OnboardingFlow({ onComplete }) {
                                                             children: g.label
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                                            lineNumber: 341,
+                                                            lineNumber: 360,
                                                             columnNumber: 25
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -8639,44 +8970,44 @@ function OnboardingFlow({ onComplete }) {
                                                             children: "Tap to select"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                                            lineNumber: 342,
+                                                            lineNumber: 361,
                                                             columnNumber: 25
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 340,
+                                                    lineNumber: 359,
                                                     columnNumber: 23
                                                 }, this),
                                                 isSelected && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__["Check"], {
                                                     className: "ml-auto w-6 h-6 text-primary"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                                    lineNumber: 344,
+                                                    lineNumber: 363,
                                                     columnNumber: 38
                                                 }, this)
                                             ]
                                         }, g.id, true, {
                                             fileName: "[project]/components/onboarding-flow.tsx",
-                                            lineNumber: 332,
+                                            lineNumber: 351,
                                             columnNumber: 21
                                         }, this);
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/components/onboarding-flow.tsx",
-                                    lineNumber: 327,
+                                    lineNumber: 346,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 325,
+                            lineNumber: 344,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/onboarding-flow.tsx",
-                    lineNumber: 160,
+                    lineNumber: 158,
                     columnNumber: 9
                 }, this),
                 step > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8688,7 +9019,7 @@ function OnboardingFlow({ onComplete }) {
                             children: "Back"
                         }, void 0, false, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 357,
+                            lineNumber: 376,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -8697,24 +9028,24 @@ function OnboardingFlow({ onComplete }) {
                             children: step === 6 ? "Complete Profile" : "Continue"
                         }, void 0, false, {
                             fileName: "[project]/components/onboarding-flow.tsx",
-                            lineNumber: 358,
+                            lineNumber: 377,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/onboarding-flow.tsx",
-                    lineNumber: 356,
+                    lineNumber: 375,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/components/onboarding-flow.tsx",
-            lineNumber: 139,
+            lineNumber: 135,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/components/onboarding-flow.tsx",
-        lineNumber: 138,
+        lineNumber: 134,
         columnNumber: 5
     }, this);
 }

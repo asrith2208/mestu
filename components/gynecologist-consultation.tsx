@@ -9,29 +9,29 @@ interface GynecologistConsultationProps {
   user: any
 }
 
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
+
 export default function GynecologistConsultation({ user }: GynecologistConsultationProps) {
   const [activeTab, setActiveTab] = useState("book")
   const [consultations, setConsultations] = useState<any[]>([])
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("saukhya_consultations")
-      if (saved) {
-        setConsultations(JSON.parse(saved))
-      }
-    } catch (error) {
-      console.log("[v0] Error loading consultations:", error)
-    }
+    if (!auth.currentUser) return
+
+    const q = query(collection(db, "users", auth.currentUser.uid, "consultations"), orderBy("bookedDate", "desc"))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      setConsultations(fetched)
+    }, (error) => {
+      console.log("Error loading consultations:", error)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const handleBookingComplete = (newConsultation: any) => {
-    const updated = [...consultations, newConsultation]
-    setConsultations(updated)
-    try {
-      localStorage.setItem("saukhya_consultations", JSON.stringify(updated))
-    } catch (error) {
-      console.log("[v0] Error saving consultation:", error)
-    }
+    // No need to manually update state, onSnapshot will handle it
     setActiveTab("history")
   }
 
@@ -46,31 +46,28 @@ export default function GynecologistConsultation({ user }: GynecologistConsultat
       <div className="flex gap-2 mb-6 border-b border-border overflow-x-auto">
         <button
           onClick={() => setActiveTab("book")}
-          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${
-            activeTab === "book"
+          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${activeTab === "book"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           📅 Book Consultation
         </button>
         <button
           onClick={() => setActiveTab("doctors")}
-          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${
-            activeTab === "doctors"
+          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${activeTab === "doctors"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           👩‍⚕️ Find Doctors
         </button>
         <button
           onClick={() => setActiveTab("history")}
-          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${
-            activeTab === "history"
+          className={`px-4 py-3 font-semibold whitespace-nowrap transition-smooth border-b-2 ${activeTab === "history"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           📋 My Consultations ({consultations.length})
         </button>

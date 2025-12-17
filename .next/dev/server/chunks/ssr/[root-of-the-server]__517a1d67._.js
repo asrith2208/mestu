@@ -377,6 +377,167 @@ const SplashScreen = ({ onComplete })=>{
     }, ("TURBOPACK compile-time value", void 0));
 };
 }),
+"[project]/lib/translations.ts [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "translations",
+    ()=>translations
+]);
+const translations = {
+    en: {
+        profile: "Profile",
+        health: "Health",
+        consult: "Consult",
+        community: "Community",
+        home: "Home",
+        cyclesTracked: "Cycles Tracked",
+        aiPrediction: "AI Prediction",
+        nextPeriod: "Next Period",
+        symptomTracker: "Symptom Tracker",
+        logSymptoms: "Log Symptoms",
+        painLevel: "Pain Level",
+        // Onboarding
+        selectLanguage: "Select Language",
+        continue: "Continue",
+        welcome: "Welcome to Saukhya",
+        welcomeSubtitle: "Your intelligent companion for menstrual health. Let's personalize your experience.",
+        getStarted: "Get Started",
+        tellUsAboutYourself: "Tell us about yourself",
+        nameLabel: "What should we call you?",
+        ageLabel: "How old are you?",
+        cycleDetails: "Cycle Details",
+        cycleLengthLabel: "Average Cycle Length (days)",
+        periodDurationLabel: "Period Duration (days)",
+        diagnosedConditions: "Diagnosed Conditions",
+        commonSymptoms: "Common Symptoms",
+        typicalPain: "Typical Pain Level",
+        yourGoals: "Your Goals",
+        completeProfile: "Complete Profile",
+        saving: "Saving Profile...",
+        back: "Back",
+        step: "Step",
+        of: "of"
+    },
+    hi: {
+        profile: "प्रोफ़ाइल",
+        health: "स्वास्थ्य",
+        consult: "परामर्श",
+        community: "समुदाय",
+        home: "होम",
+        cyclesTracked: "ट्रैक किए गए चक्र",
+        aiPrediction: "AI भविष्यवाणी",
+        nextPeriod: "अगली माहवारी",
+        symptomTracker: "लक्षण ट्रैकर",
+        logSymptoms: "लक्षण दर्ज करें",
+        painLevel: "दर्द का स्तर",
+        // Onboarding
+        selectLanguage: "भाषा चुनें",
+        continue: "जारी रखें",
+        welcomeSubtitle: "मासिक धर्म स्वास्थ्य के लिए आपका बुद्धिमान साथी। आइए आपके अनुभव को निजीकृत करें।",
+        tellUsAboutYourself: "अपने बारे में बताएं",
+        nameLabel: "हम आपको क्या कहकर बुलाएं?",
+        ageLabel: "आपकी उम्र क्या है?",
+        cycleDetails: "चक्र विवरण",
+        cycleLengthLabel: "औसत चक्र की लंबाई (दिन)",
+        periodDurationLabel: "मासिक धर्म की अवधि (दिन)",
+        diagnosedConditions: "निदान की गई स्थितियां",
+        commonSymptoms: "सामान्य लक्षण",
+        typicalPain: "विशिष्ट दर्द का स्तर",
+        yourGoals: "आपके लक्ष्य",
+        completeProfile: "प्रोफ़ाइल पूर्ण करें",
+        saving: "प्रोफ़ाइल सहेज रहा है...",
+        back: "वापस",
+        step: "चरण",
+        of: "का"
+    },
+    mr: {
+        profile: "प्रोफाइल",
+        health: "आरोग्य",
+        consult: "सल्ला",
+        community: "समुदाय",
+        home: "होम",
+        cyclesTracked: "ट्रॅक केलेले चक्र",
+        aiPrediction: "AI अंदाज",
+        nextPeriod: "पुढील पाळी",
+        symptomTracker: "लक्षण ट्रॅकर",
+        logSymptoms: "लक्षणे नोंदवा",
+        painLevel: "वेदनेची पातळी",
+        // Onboarding
+        selectLanguage: "भाषा निवडा",
+        continue: "पुढे चला",
+        welcomeSubtitle: "मासिक पाळीच्या आरोग्यासाठी तुमचा हुशार सोबती. चला तुमचा अनुभव वैयक्तिकृत करूया.",
+        tellUsAboutYourself: "तुमच्याबद्दल सांगा",
+        nameLabel: "आम्ही तुम्हाला काय नावाने हाक मारावी?",
+        ageLabel: "तुमचे वय काय आहे?",
+        cycleDetails: "चक्र तपशील",
+        cycleLengthLabel: "सरासरी चक्र लांबी (दिवस)",
+        periodDurationLabel: "मासिक पाळीचा कालावधी (दिवस)",
+        diagnosedConditions: "निदान झालेल्या स्थिती",
+        commonSymptoms: "सामान्य लक्षणे",
+        typicalPain: "सामान्य वेदना पातळी",
+        yourGoals: "तुमची उद्दिष्टे",
+        completeProfile: "प्रोफाइल पूर्ण करा",
+        saving: "प्रोफाइल जतन करत आहे...",
+        back: "मागे",
+        step: "चरण",
+        of: "पैकी"
+    }
+};
+}),
+"[project]/components/language-context.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "LanguageProvider",
+    ()=>LanguageProvider,
+    "useLanguage",
+    ()=>useLanguage
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$translations$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/translations.ts [app-ssr] (ecmascript)");
+"use client";
+;
+;
+;
+const LanguageContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createContext"])(undefined);
+function LanguageProvider({ children }) {
+    const [language, setLanguage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])("en");
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        const savedLang = localStorage.getItem("saukhya_lang");
+        if (savedLang) {
+            setLanguage(savedLang);
+        }
+    }, []);
+    const handleSetLanguage = (lang)=>{
+        setLanguage(lang);
+        localStorage.setItem("saukhya_lang", lang);
+    };
+    const t = (key)=>{
+        return __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$translations$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["translations"][language][key] || __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$translations$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["translations"]["en"][key] || key;
+    };
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(LanguageContext.Provider, {
+        value: {
+            language,
+            setLanguage: handleSetLanguage,
+            t
+        },
+        children: children
+    }, void 0, false, {
+        fileName: "[project]/components/language-context.tsx",
+        lineNumber: 34,
+        columnNumber: 9
+    }, this);
+}
+const useLanguage = ()=>{
+    const context = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useContext"])(LanguageContext);
+    if (context === undefined) {
+        throw new Error("useLanguage must be used within a LanguageProvider");
+    }
+    return context;
+};
+}),
 "[project]/components/client-layout.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
@@ -389,7 +550,9 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$auth$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/auth-context.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$sonner$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/sonner.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$splash$2d$screen$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/splash-screen.tsx [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/language-context.tsx [app-ssr] (ecmascript)");
 "use client";
+;
 ;
 ;
 ;
@@ -409,26 +572,26 @@ function ClientLayout({ children }) {
             onComplete: ()=>setLoading(false)
         }, void 0, false, {
             fileName: "[project]/components/client-layout.tsx",
-            lineNumber: 24,
+            lineNumber: 25,
             columnNumber: 17
-        }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(LanguageProvider, {
+        }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$language$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["LanguageProvider"], {
             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$auth$2d$context$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["AuthProvider"], {
                 children: [
                     children,
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$sonner$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Toaster"], {}, void 0, false, {
                         fileName: "[project]/components/client-layout.tsx",
-                        lineNumber: 29,
+                        lineNumber: 30,
                         columnNumber: 25
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/client-layout.tsx",
-                lineNumber: 27,
+                lineNumber: 28,
                 columnNumber: 21
             }, this)
         }, void 0, false, {
             fileName: "[project]/components/client-layout.tsx",
-            lineNumber: 26,
+            lineNumber: 27,
             columnNumber: 17
         }, this)
     }, void 0, false);
@@ -436,4 +599,4 @@ function ClientLayout({ children }) {
 }),
 ];
 
-//# sourceMappingURL=%5Broot-of-the-server%5D__a6b4ab55._.js.map
+//# sourceMappingURL=%5Broot-of-the-server%5D__517a1d67._.js.map

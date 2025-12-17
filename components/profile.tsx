@@ -7,12 +7,15 @@ import ProfileStats from "./profile-stats"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp } from 'lucide-react'
 
+import { useLanguage } from "./language-context"
+
 interface ProfileProps {
   user: any
   setUser: (user: any) => void
 }
 
 export default function Profile({ user, setUser }: ProfileProps) {
+  const { language, setLanguage } = useLanguage()
   const [activeTab, setActiveTab] = useState("profile")
   const [formData, setFormData] = useState({
     name: "",
@@ -153,6 +156,19 @@ export default function Profile({ user, setUser }: ProfileProps) {
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-foreground mb-2">Your Profile</h2>
         <p className="text-muted-foreground">Manage your health information and preferences</p>
+      </div>
+
+      {/* Language Switcher */}
+      <div className="flex justify-end mb-4">
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as any)}
+          className="bg-white border border-border rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+        >
+          <option value="en">English (EN)</option>
+          <option value="hi">Hindi (हिंदी)</option>
+          <option value="mr">Marathi (मराठी)</option>
+        </select>
       </div>
 
       {/* Stats */}

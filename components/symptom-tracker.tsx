@@ -39,6 +39,41 @@ const SYMPTOM_CATEGORIES = {
   },
 }
 
+const CONDITION_SPECIFIC_SYMPTOMS: any = {
+  pcos: {
+    label: "PCOS Symptoms",
+    symptoms: [
+      { id: "hirsutism", label: "Excess Hair Growth", icon: "🧔‍♀️" },
+      { id: "hair_loss", label: "Hair Thinning", icon: "🧴" },
+      { id: "weight_gain", label: "Rapid Weight Gain", icon: "⚖️" },
+      { id: "acne_cystic", label: "Cystic Acne", icon: "🔴" },
+    ]
+  },
+  endometriosis: {
+    label: "Endometriosis Tracking",
+    symptoms: [
+      { id: "pelvic_pain", label: "Pelvic Pain", icon: "⚡" },
+      { id: "painful_intercourse", label: "Painful Intercourse", icon: "💔" },
+      { id: "painful_bowel", label: "Painful Bowel Mvmts", icon: "🚽" },
+    ]
+  },
+  pmdd: {
+    label: "PMDD Specific",
+    symptoms: [
+      { id: "severe_mood", label: "Severe Mood Swing", icon: "🌪️" },
+      { id: "rage", label: "Sudden Anger", icon: "😡" },
+      { id: "hopelessness", label: "Feeling Hopeless", icon: "🌧️" },
+    ]
+  },
+  fibroids: {
+    label: "Fibroid Symptoms",
+    symptoms: [
+      { id: "heavy_pressure", label: "Pelvic Pressure", icon: "🧱" },
+      { id: "frequent_urinary", label: "Frequent Urination", icon: "🚻" },
+    ]
+  }
+}
+
 import { collection, doc, getDocs, setDoc, query, where, getDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 
@@ -179,14 +214,14 @@ export default function SymptomTracker({ user }: SymptomTrackerProps) {
                       key={level}
                       onClick={() => handleSymptomSeverity(symptom.id, level)}
                       className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-smooth ${selectedSymptoms[symptom.id] === level
-                          ? level === 0
-                            ? "bg-muted text-muted-foreground"
-                            : level === 1
-                              ? "bg-yellow-200 text-yellow-800"
-                              : level === 2
-                                ? "bg-orange-200 text-orange-800"
-                                : "bg-accent-red text-white"
-                          : "bg-muted text-muted-foreground hover:bg-border"
+                        ? level === 0
+                          ? "bg-muted text-muted-foreground"
+                          : level === 1
+                            ? "bg-yellow-200 text-yellow-800"
+                            : level === 2
+                              ? "bg-orange-200 text-orange-800"
+                              : "bg-accent-red text-white"
+                        : "bg-muted text-muted-foreground hover:bg-border"
                         }`}
                     >
                       {level === 0 ? "None" : level === 1 ? "Mild" : level === 2 ? "Moderate" : "Severe"}
