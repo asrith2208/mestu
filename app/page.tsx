@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth-context"
 import Dashboard from "@/components/dashboard"
 import PeriodTracker from "@/components/period-tracker"
 import SymptomTracker from "@/components/symptom-tracker"
@@ -14,15 +16,25 @@ import BottomNavigation from "@/components/bottom-navigation"
 import HomePage from "@/components/home-page"
 
 export default function Home() {
+  const router = useRouter()
+  const { user: authUser, loading: authLoading } = useAuth()
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
+    if (authLoading) return
+
+    if (!authUser) {
+      router.push("/login")
+      return
+    }
+
     try {
       const savedUser = localStorage.getItem("saukhya_user")
-      const onboardingComplete = localStorage.getItem("saukhya_onboarding_complete")
+      // We don't need onboardingComplete check if we just check user data existence
+      // const onboardingComplete = localStorage.getItem("saukhya_onboarding_complete")
 
       if (savedUser) {
         setUser(JSON.parse(savedUser))
@@ -36,7 +48,7 @@ export default function Home() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [authUser, authLoading, router])
 
   if (showOnboarding) {
     return (
@@ -73,7 +85,7 @@ export default function Home() {
     }
   }
 
-  if (isLoading) {
+  if (authLoading || (isLoading && authUser)) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -83,6 +95,8 @@ export default function Home() {
       </main>
     )
   }
+
+  if (!authUser) return null
 
   return (
     <main className="min-h-screen bg-background">
