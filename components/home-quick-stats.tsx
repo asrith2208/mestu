@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
-import { Calendar, Activity, Zap, Droplets } from "lucide-react"
+import { Calendar, Activity, Zap, Droplets, Scale, Check, Loader2 } from "lucide-react"
+import { doc, setDoc, updateDoc } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
 
 interface HomeQuickStatsProps {
   user: any
@@ -14,7 +16,17 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
     phaseColor: "from-emerald-500 to-emerald-600"
   })
 
+  // Vitals State
+  const [weight, setWeight] = useState(user?.weight || "")
+  const [currentBMI, setCurrentBMI] = useState(user?.bmi || "")
+  const [isSavingWeight, setIsSavingWeight] = useState(false)
+
   useEffect(() => {
+    if (user) {
+      setWeight(user.weight || "")
+      setCurrentBMI(user.bmi || "")
+    }
+
     if (user?.lastPeriodDate) {
       try {
         const lastPeriodDate = new Date(user.lastPeriodDate)
@@ -32,8 +44,6 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
         const daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
         // Calculate phase and day
-        // Handle "Late" or "New Cycle" if we passed cycleLength? 
-        // For simplicity, we restart day count after cycleLength
         const currentCycleDay = (daysElapsed % cycleLength) + 1
 
         let daysUntil = cycleLength - currentCycleDay + 1
@@ -61,21 +71,11 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
           phaseColor = "from-violet-500 to-violet-600" // Purple
         }
 
-        // Logic for "Late"
-        if (daysElapsed >= cycleLength) {
-          // If we rely strictly on "lastPeriodDate" without a "log period" action, 
-          // showing "Day 35 of 28" might be better than "Day 7" if they are late.
-          // But usually apps assume new cycle if user didn't log. 
-          // However, strictly speaking, if they haven't logged, they might be Late.
-          // Let's stick to the modulo arithmetic for "Predictions" but maybe show "Late?" if > cycleLength + 5
-        }
-
         setCycleData({
           phase,
           dayInCycle: currentCycleDay,
           nextPeriod: nextPeriodDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           daysUntilPeriod: daysUntil,
-          // We can also store color to make it dynamic
           phaseColor
         } as any)
 
@@ -87,6 +87,46 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
       setCycleData(prev => ({ ...prev, phase: "Setup Needed", nextPeriod: "-", daysUntilPeriod: 0 }))
     }
   }, [user])
+
+  const calculateBMI = (w: string) => {
+    if (!user?.height) return ""
+    const h_m = parseFloat(user.height) / 100
+    const w_kg = parseFloat(w)
+    if (h_m > 0 && w_kg > 0) return (w_kg / (h_m * h_m)).toFixed(1)
+    return ""
+  }
+
+  const handleSaveWeight = async () => {
+    if (!auth.currentUser || !weight) return
+    setIsSavingWeight(true)
+    try {
+      const bmi = calculateBMI(weight)
+      setCurrentBMI(bmi)
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // 1. Log history
+      await setDoc(doc(db, "users", auth.currentUser.uid, "wellness_logs", today), {
+        weight: weight,
+        bmi: bmi,
+        date: today,
+        timestamp: new Date().toISOString()
+      }, { merge: true })
+
+      // 2. Update Profile
+      await updateDoc(doc(db, "users", auth.currentUser.uid), {
+        weight: weight,
+        bmi: bmi
+      })
+
+      setIsSavingWeight(false)
+      // Optional: Trigger global refresh or alert
+    } catch (e) {
+      console.error("Error saving weight", e)
+    } finally {
+      setIsSavingWeight(false)
+    }
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 mb-8">
@@ -120,42 +160,54 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
         </div>
       </div>
 
-      {/* Flow & Symptoms */}
-      <div className="relative overflow-hidden bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="bg-purple-100 p-2 rounded-full">
-            <Droplets className="w-4 h-4 text-purple-600" />
+      {/* Daily Weight & BMI (Replaces Flow/Pain) */}
+      <div className="col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-full">
+              <Scale className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-blue-900 text-sm uppercase tracking-wide">Daily Weight</h3>
+              <p className="text-xs text-blue-600/70">Update to track BMI</p>
+            </div>
           </div>
-          <span className="text-xs font-semibold text-muted-foreground uppercase">Flow</span>
+          <div className="text-right bg-white/60 px-3 py-1 rounded-lg">
+            <span className="block text-2xl font-bold text-blue-900 leading-none">{currentBMI || "--"}</span>
+            <span className="text-[10px] text-blue-600 font-bold uppercase">BMI</span>
+          </div>
         </div>
-        <p className="font-bold text-foreground capitalize text-lg">{user?.flowIntensity || "Not set"}</p>
-        <p className="text-xs text-muted-foreground mt-1">{user?.conditions?.length || 0} conditions logged</p>
+
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="Kg"
+              className="w-full pl-3 pr-8 py-3 rounded-xl border-2 border-blue-100 focus:border-blue-400 focus:ring-0 bg-white font-bold text-gray-700 outline-none transition-all"
+            />
+            <span className="absolute right-3 top-3.5 text-xs font-bold text-gray-400">KG</span>
+          </div>
+          <button
+            onClick={handleSaveWeight}
+            disabled={isSavingWeight || !weight}
+            className="bg-blue-600 text-white px-6 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center min-w-[60px]"
+          >
+            {isSavingWeight ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
-      {/* Pain Level */}
-      <div className="relative overflow-hidden bg-white border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="bg-red-100 p-2 rounded-full">
-            <Zap className="w-4 h-4 text-red-500" />
-          </div>
-          <span className="text-xs font-semibold text-muted-foreground uppercase">Pain</span>
-        </div>
-        <div className="flex items-baseline gap-1">
-          <p className="font-bold text-foreground text-2xl">{user?.painLevel || "0"}</p>
-          <span className="text-xs text-muted-foreground font-medium">/ 10</span>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">Typical level</p>
-      </div>
-
-      {/* Symptom Forecast (New) */}
-      <div className="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+      {/* Symptom Forecast */}
+      <div className="col-span-2 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="bg-blue-100 p-2 rounded-full mt-1">
-            <Activity className="w-5 h-5 text-blue-600" />
+          <div className="bg-purple-100 p-2 rounded-full mt-1">
+            <Zap className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="font-bold text-blue-900 text-sm uppercase tracking-wide mb-1">Today's Forecast</h3>
-            <p className="text-blue-800 font-medium text-lg leading-tight">
+            <h3 className="font-bold text-purple-900 text-sm uppercase tracking-wide mb-1">Today's Forecast</h3>
+            <p className="text-purple-800 font-medium text-lg leading-tight">
               {cycleData.phase === "Menstruation" ? "Cramps & fatigue likely. Keep warm." :
                 cycleData.phase === "Follicular" ? "Energy rising! Great for exercise." :
                   cycleData.phase === "Ovulation" ? "Peak confidence & energy." :
