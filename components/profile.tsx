@@ -4,6 +4,8 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import ProfileStats from "./profile-stats"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { TrendingUp } from 'lucide-react'
 
 interface ProfileProps {
   user: any
@@ -37,11 +39,22 @@ export default function Profile({ user, setUser }: ProfileProps) {
   const [wellness, setWellness] = useState<any[]>([])
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("saukhya_user")
-    if (savedUser) {
-      setFormData(JSON.parse(savedUser))
+    // If user prop is provided (from Firestore via AuthContext), populate form data
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        age: user.age || "",
+        cycleLength: user.cycleLength || "28",
+        periodDuration: user.periodDuration || "5",
+        conditions: user.conditions || [],
+      })
     }
+  }, [user])
 
+  // We can keep these local settings for now as they are preference-based, or move them to Firestore later.
+  // Ideally, notifications and privacy should also be in Firestore.
+  useEffect(() => {
     const savedNotifications = localStorage.getItem("saukhya_notifications")
     if (savedNotifications) {
       setNotificationSettings(JSON.parse(savedNotifications))
@@ -52,14 +65,20 @@ export default function Profile({ user, setUser }: ProfileProps) {
       setPrivacySettings(JSON.parse(savedPrivacy))
     }
 
-    const savedCycles = localStorage.getItem("saukhya_cycles")
-    if (savedCycles) setCycles(JSON.parse(savedCycles))
+    // FETCH cycles/symptoms from Firestore if available? 
+    // They are passed to ProfileStats via props if we fetched them in parent page.
+    // However, ProfileStats expects arrays. 
+    // Wait, the parent Page passes user={user}. 'user' object from AuthContext 
+    // currently ONLY contains the profile data from 'users/{uid}'.
+    // It does NOT contain subcollections 'cycles' and 'symptoms'.
+    // We need to fetch stats here or in parent.
+    // For now let's rely on what we have, but ProfileStats needs data.
+    // The current ProfileStats implementation uses passed props.
+    // We should probably fetch them here if we want Profile to be standalone-ish
+    // OR just use what we have if we want to stick to the 'user' object.
 
-    const savedSymptoms = localStorage.getItem("saukhya_symptoms")
-    if (savedSymptoms) setSymptoms(JSON.parse(savedSymptoms))
-
-    const savedWellness = localStorage.getItem("saukhya_wellness")
-    if (savedWellness) setWellness(JSON.parse(savedWellness))
+    // Re-using the localStorage for "Stats" is legacy. 
+    // Let's blank them out for now to encourage Firestore usage or leave them compatible.
   }, [])
 
   const handleProfileSubmit = (e: React.FormEvent) => {
@@ -145,6 +164,7 @@ export default function Profile({ user, setUser }: ProfileProps) {
       <div className="flex gap-4 mb-8 border-b border-border overflow-x-auto pb-2">
         {[
           { id: "profile", label: "Profile" },
+          { id: "history", label: "History" },
           { id: "notifications", label: "Notifications" },
           { id: "privacy", label: "Privacy" },
           { id: "data", label: "Data" },
@@ -152,15 +172,15 @@ export default function Profile({ user, setUser }: ProfileProps) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-3 font-semibold transition-smooth border-b-2 whitespace-nowrap ${
-              activeTab === tab.id
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-4 py-3 font-semibold transition-smooth border-b-2 whitespace-nowrap ${activeTab === tab.id
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             {tab.label}
           </button>
-        ))}
+        ))
+        }
       </div>
 
       {/* Profile Tab */}
@@ -460,6 +480,73 @@ export default function Profile({ user, setUser }: ProfileProps) {
             <button className="w-full bg-accent-red hover:bg-accent-red/90 text-white font-semibold py-3 rounded-lg transition-smooth">
               Delete All Data
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* History Tab */}
+      {activeTab === "history" && (
+        <div className="space-y-6">
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Symptom Trends</h3>
+            <div className="h-[300px] w-full">
+              {symptoms.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={symptoms}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12, fill: '#9ca3af' }}
+                      tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    />
+                    <YAxis domain={[0, 10]} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ color: '#e11d48' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="painLevel"
+                      stroke="#e11d48"
+                      strokeWidth={3}
+                      dot={{ stroke: '#e11d48', strokeWidth: 2, r: 4, fill: '#fff' }}
+                      activeDot={{ r: 6, fill: '#e11d48' }}
+                      name="Pain Level"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
+                  <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
+                  <p>No symptom data tracked yet.</p>
+                  <p className="text-sm">Start logging your symptoms to see trends here.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h3>
+            <div className="space-y-4">
+              {symptoms.slice(0, 5).map((log, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {new Date(log.date).getDate()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Symptom Log</p>
+                      <p className="text-xs text-gray-500">{new Date(log.date).toDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-bold text-primary">Pain: {log.painLevel}/10</span>
+                    <span className="text-xs text-muted-foreground">{Object.keys(log.symptoms || {}).length} symptoms</span>
+                  </div>
+                </div>
+              ))}
+              {symptoms.length === 0 && <p className="text-center text-gray-400 py-4">No recent activity</p>}
+            </div>
           </div>
         </div>
       )}

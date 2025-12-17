@@ -450,3 +450,501 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
 [00:05:04.544] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 [00:05:25.965] Browser LOG     Failed to initialize reCAPTCHA Enterprise config. Triggering the reCAPTCHA v2 verification.
 [00:05:32.871] Browser ERROR   {"code":"auth/invalid-app-credential","customData":{},"name":"FirebaseError"}
+[00:07:38.209] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:07:38.663] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:26:05.022] Server  LOG      ✓ Compiled in 544ms
+[00:26:08.922] Server  LOG      ✓ Compiled in 944ms
+[00:26:09.518] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:26:09.519] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:26:09.519] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:26:14.519] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:26:14.519] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:26:14.519] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:29:40.735] Server  LOG      ✓ Compiled in 471ms
+[00:29:41.510] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:29:41.510] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:29:41.510] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:32:35.213] Server  LOG      ✓ Compiled in 92ms
+[00:32:35.508] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:32:35.508] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:32:35.508] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:34:04.445] Server  LOG      ✓ Compiled in 324ms
+[00:34:05.514] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:34:05.514] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:34:05.514] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:35.684] Server  LOG      ✓ Compiled in 864ms
+[00:52:36.522] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:36.522] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:36.522] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:38.521] Browser ERROR   ./components/onboarding-flow.tsx:370:15
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |               ^^^^^^^^
+  371 |
+
+the name `Activity` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:38.521] Browser ERROR   ./components/onboarding-flow.tsx:370:47
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                               ^^^^^^^^
+  371 |
+
+the name `Calendar` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:38.521] Browser ERROR   ./components/onboarding-flow.tsx:370:37
+Ecmascript file had an error
+  368 |
+  369 | // Add these imports to module scope manually to fix linting errors with missing icons if any
+> 370 | import { Zap, Activity, HeartPulse, Droplets, Calendar, CheckCircle, BatteryLow, Theater, Expand, Brain, CloudFog, Sparkles } from "lucide-react"
+      |                                     ^^^^^^^^
+  371 |
+
+the name `Droplets` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./components/onboarding-flow.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/onboarding-flow.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:52:38.521] Browser ERROR   ./components/profile.tsx:176:9
+Parsing ecmascript source code failed
+  174 |             { id: "privacy", label: "Privacy" },
+  175 |             { id: "data", label: "Data" },
+> 176 |         ].map((tab) => (
+      |         ^
+  177 |               <button
+  178 |                 key={tab.id}
+  179 |                 onClick={() => setActiveTab(tab.id)}
+
+Expected '</', got ']'
+
+Import traces:
+  Client Component Browser:
+    ./components/profile.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/profile.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:54:52.507] Browser ERROR   ./components/profile.tsx:176:9
+Parsing ecmascript source code failed
+  174 |             { id: "privacy", label: "Privacy" },
+  175 |             { id: "data", label: "Data" },
+> 176 |         ].map((tab) => (
+      |         ^
+  177 |               <button
+  178 |                 key={tab.id}
+  179 |                 onClick={() => setActiveTab(tab.id)}
+
+Expected '</', got ']'
+
+Import traces:
+  Client Component Browser:
+    ./components/profile.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/profile.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:54:55.517] Browser ERROR   ./components/profile.tsx:176:9
+Parsing ecmascript source code failed
+  174 |             { id: "privacy", label: "Privacy" },
+  175 |             { id: "data", label: "Data" },
+> 176 |         ].map((tab) => (
+      |         ^
+  177 |               <button
+  178 |                 key={tab.id}
+  179 |                 onClick={() => setActiveTab(tab.id)}
+
+Expected '</', got ']'
+
+Import traces:
+  Client Component Browser:
+    ./components/profile.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/profile.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+[00:54:56.596] Server  LOG      ✓ Compiled in 125ms
+[00:54:57.422] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
