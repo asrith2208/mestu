@@ -1,8 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { AuthProvider } from "@/components/auth-context"
-import { Toaster } from "@/components/ui/sonner"
+import { ClientLayout } from "@/components/client-layout"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"] })
@@ -53,10 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.className} bg-background text-foreground`}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )
