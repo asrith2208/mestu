@@ -168,22 +168,22 @@ export default function WellnessTracker({ date }: WellnessTrackerProps) {
 
       </div>
 
-    </div>
-      
-      {/* Auto-Save & Status Indicator */ }
-  <div className="flex justify-center items-center py-2 h-8">
-    {loading ? (
-      <span className="text-xs font-medium text-gray-400 animate-pulse flex items-center gap-1">
-        Saving...
-      </span>
-    ) : isSaved ? (
-      <span className="text-xs font-medium text-green-500 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
-        <Check className="w-3 h-3" /> Saved
-      </span>
-    ) : (
-      <span className="text-[10px] text-gray-300">Changes save automatically</span>
-    )}
-  </div>
+
+
+      {/* Auto-Save & Status Indicator */}
+      <div className="flex justify-center items-center py-2 h-8">
+        {loading ? (
+          <span className="text-xs font-medium text-gray-400 animate-pulse flex items-center gap-1">
+            Saving...
+          </span>
+        ) : isSaved ? (
+          <span className="text-xs font-medium text-green-500 flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
+            <Check className="w-3 h-3" /> Saved
+          </span>
+        ) : (
+          <span className="text-[10px] text-gray-300">Changes save automatically</span>
+        )}
+      </div>
     </div >
   )
 }

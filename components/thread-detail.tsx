@@ -32,7 +32,7 @@ export default function ThreadDetail({ thread, onClose, onAddReply }: ThreadDeta
 
   const toggleLike = (replyId: number) => {
     setReplies(
-      replies.map((reply) =>
+      replies.map((reply: any) =>
         reply.id === replyId
           ? { ...reply, liked: !reply.liked, likes: reply.liked ? reply.likes - 1 : reply.likes + 1 }
           : reply,
@@ -41,7 +41,7 @@ export default function ThreadDetail({ thread, onClose, onAddReply }: ThreadDeta
   }
 
   return (
-  return (
+
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-end sm:items-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-lg h-[90vh] sm:h-[85vh] sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
 
@@ -77,7 +77,7 @@ export default function ThreadDetail({ thread, onClose, onAddReply }: ThreadDeta
                 No comments yet. Be the first to say something!
               </div>
             ) : (
-              replies.map((reply) => (
+              replies.map((reply: any) => (
                 <div key={reply.id} className="flex gap-3 group">
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
                     {reply.author?.charAt(0) || "?"}
@@ -128,7 +128,5 @@ export default function ThreadDetail({ thread, onClose, onAddReply }: ThreadDeta
         </div>
       </div>
     </div>
-  )
-}
   )
 }
