@@ -180,7 +180,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    if (step < 7) {
+    if (step < 6) {
       setStep(step + 1)
     } else {
       try {
@@ -226,7 +226,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (step > 0) setStep(step - 1)
   }
 
-  const progressPercent = ((step + 1) / 8) * 100
+  const progressPercent = ((step + 1) / 7) * 100
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -572,34 +572,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
           )}
-
-          {/* Step 7: Reproductive Health */}
-          {step === 7 && (
-            <div className="space-y-6 max-w-md mx-auto w-full text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Final Check</h2>
-              <p className="text-gray-500 mb-8">Are you currently trying to conceive?</p>
-
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <button onClick={() => setUserData({ ...userData, tryingToConceive: true })}
-                  className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${userData.tryingToConceive ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-100 bg-white hover:border-primary/20'}`}>
-                  <Heart className={`w-8 h-8 ${userData.tryingToConceive ? 'text-primary' : 'text-gray-400'}`} />
-                  <span className="font-bold text-gray-800">Yes, trying</span>
-                </button>
-
-                <button onClick={() => setUserData({ ...userData, tryingToConceive: false })}
-                  className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${!userData.tryingToConceive ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-100 bg-white hover:border-primary/20'}`}>
-                  <Calendar className={`w-8 h-8 ${!userData.tryingToConceive ? 'text-primary' : 'text-gray-400'}`} />
-                  <span className="font-bold text-gray-800">No, just tracking</span>
-                </button>
-              </div>
-
-              <div className="bg-green-50 p-4 rounded-xl border border-green-100 text-green-800 text-sm">
-                <ShieldCheckIcon className="w-5 h-5 mx-auto mb-1 text-green-600" />
-                Your data is encrypted and private. We use it only to personalize your insights.
-              </div>
-            </div>
-          )}
-
         </div>
 
         {/* Footer Actions */}
@@ -607,7 +579,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50/50">
             <button onClick={handleBack} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">Back</button>
             <button onClick={handleNext} className="flex-1 bg-primary text-white rounded-xl font-bold py-3 hover:bg-primary-light transition-all shadow-lg shadow-primary/20">
-              {step === 7 ? "Complete Profile" : "Continue"}
+              {step === 6 ? "Complete Profile" : "Continue"}
             </button>
           </div>
         )}
