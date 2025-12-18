@@ -234,6 +234,73 @@ export default function LoginPage() {
                             </div>
                         )
                     )}
+
+                    {!isAdminMode && (
+                        <div className="mt-6 text-center">
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white px-2 text-muted-foreground">Or</span>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                className="w-full mt-4 border-dashed border-gray-400 text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                onClick={async () => {
+                                    setLoading(true)
+                                    try {
+                                        // 1. Try Anonymous First
+                                        const { signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import("firebase/auth")
+                                        try {
+                                            await signInAnonymously(auth)
+                                            toast.success("Logged in as Guest (Anonymous)")
+                                            return
+                                        } catch (anonErr: any) {
+                                            // 2. If Anon disabled, try Guest Email/Pass
+                                            if (anonErr.code === 'auth/operation-not-allowed' || anonErr.code === 'auth/admin-restricted-operation') {
+                                                console.log("Anonymous auth disabled, trying guest email...")
+                                                const guestEmail = "guest_demo@saukya.com"
+                                                const guestPass = "TestUser123!"
+
+                                                try {
+                                                    await signInWithEmailAndPassword(auth, guestEmail, guestPass)
+                                                    toast.success("Logged in as Guest (Email)")
+                                                } catch (loginErr: any) {
+                                                    // 3. If User doesn't exist, Create it
+                                                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                                                        try {
+                                                            await createUserWithEmailAndPassword(auth, guestEmail, guestPass)
+                                                            toast.success("Created & Logged in as Guest")
+                                                        } catch (createErr: any) {
+                                                            throw createErr
+                                                        }
+                                                    } else {
+                                                        throw loginErr
+                                                    }
+                                                }
+                                            } else {
+                                                throw anonErr
+                                            }
+                                        }
+                                    } catch (e: any) {
+                                        console.error(e)
+                                        let msg = "Test login failed."
+                                        if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/admin-restricted-operation') {
+                                            msg = "Please Enable 'Anonymous' or 'Email/Password' in Firebase Console."
+                                        }
+                                        toast.error(msg)
+                                    } finally {
+                                        setLoading(false)
+                                    }
+                                }}
+                                disabled={loading}
+                            >
+                                🧪 Test Login (Bypass OTP)
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

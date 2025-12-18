@@ -41,15 +41,18 @@ if ("TURBOPACK compile-time truthy", 1) {
 }
 ;
 if ("TURBOPACK compile-time truthy", 1) {
-    // Only init App Check on client side
-    try {
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["initializeAppCheck"])(app, {
-            provider: new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ReCaptchaEnterpriseProvider"](__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "your-site-key"),
-            isTokenAutoRefreshEnabled: true
-        });
-        console.log("Firebase App Check initialized.");
-    } catch (e) {
-        console.warn("App Check failed to load (expected if no key provided):", e);
+    // Only init App Check on client side if key is present
+    const siteKey = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (siteKey) {
+        try {
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["initializeAppCheck"])(app, {
+                provider: new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ReCaptchaEnterpriseProvider"](siteKey),
+                isTokenAutoRefreshEnabled: true
+            });
+            console.log("Firebase App Check initialized.");
+        } catch (e) {
+            console.warn("App Check failed to load:", e);
+        }
     }
 }
 ;
