@@ -122,7 +122,11 @@ export default function Dashboard({ user }: DashboardProps) {
           <div className="text-accent-warm text-4xl mb-2">📊</div>
           <h3 className="font-semibold text-foreground mb-2">Next Period</h3>
           <p className="text-muted-foreground text-sm">
-            {upcomingPeriod ? `Predicted: ${upcomingPeriod}` : "Add last period date"}
+            {user?.nextPredictedPeriod
+              ? `Predicted: ${new Date(user.nextPredictedPeriod).toLocaleDateString()}`
+              : upcomingPeriod
+                ? `Predicted: ${upcomingPeriod}`
+                : "Add last period date"}
           </p>
         </div>
 

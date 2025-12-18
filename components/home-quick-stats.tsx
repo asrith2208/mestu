@@ -155,8 +155,17 @@ export default function HomeQuickStats({ user }: HomeQuickStatsProps) {
           <span className="text-[10px] font-bold uppercase tracking-wider bg-black/10 px-2 py-1 rounded-md">Next</span>
         </div>
         <div>
-          <p className="font-bold text-2xl">{cycleData.daysUntilPeriod} <span className="text-sm font-medium opacity-80">days</span></p>
-          <p className="text-xs text-orange-100 mt-1">Expected {cycleData.nextPeriod}</p>
+          <p className="font-bold text-2xl">
+            {user?.nextPredictedPeriod
+              ? Math.ceil((new Date(user.nextPredictedPeriod).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+              : cycleData.daysUntilPeriod}
+            <span className="text-sm font-medium opacity-80"> days</span>
+          </p>
+          <p className="text-xs text-orange-100 mt-1">
+            Expected {user?.nextPredictedPeriod
+              ? new Date(user.nextPredictedPeriod).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : cycleData.nextPeriod}
+          </p>
         </div>
       </div>
 

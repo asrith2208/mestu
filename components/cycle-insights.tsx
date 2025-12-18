@@ -1,6 +1,7 @@
 "use client"
 
 import { useLanguage } from "./language-context"
+import { predictNextCycle, calculateCycleLengthsFromDates, addDays, predictNextPeriodFromHistory } from "@/lib/skiptrack"
 
 interface CycleInsightsProps {
   cycles: any[]
@@ -40,36 +41,30 @@ export default function CycleInsights({ cycles }: CycleInsightsProps) {
     // Ensure sorted descending (Newest first)
     const sortedCycles = [...cycles].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
 
-    const cycleLengths = []
-    // Calculate lengths: Start of New - Start of Old. 
-    // sortedCycles[0] is newest. sortedCycles[1] is previous.
-    // Length of cycle 1 is (Start 0 - Start 1).
-    for (let i = 0; i < sortedCycles.length - 1; i++) {
-      const newer = new Date(sortedCycles[i].startDate)
-      const older = new Date(sortedCycles[i + 1].startDate)
-      const diff = Math.floor((newer.getTime() - older.getTime()) / (1000 * 60 * 60 * 24))
-      cycleLengths.push(diff)
-    }
+    const startDates = sortedCycles.map(c => c.startDate)
+    const cycleLengths = calculateCycleLengthsFromDates(startDates)
 
     if (cycleLengths.length === 0) return null
 
+    const prediction = predictNextCycle(cycleLengths)
     const avgCycleLength = Math.round(cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length)
-    const weightedLength = calculateWeightedAverage(cycleLengths)
 
     const minCycleLength = Math.min(...cycleLengths)
     const maxCycleLength = Math.max(...cycleLengths)
-    const stdDev = getStandardDeviation(cycleLengths)
-    const isIrregular = stdDev > 3.5 // Stricter threshold
 
-    // AI Confidence Score
-    // Penalty for high variance and low history count
-    let confidence = 100 - (stdDev * 8)
-    if (cycleLengths.length < 3) confidence -= 20
-    confidence = Math.max(15, Math.min(98, confidence))
+    // Use Bayesian prediction for weighted length
+    const weightedLength = prediction.meanCycleLength
+
+    const stdDev = getStandardDeviation(cycleLengths)
+    const isIrregular = stdDev > 3.5
+
+    // AI Confidence Score from SkipTrack logic
+    const historyResult = predictNextPeriodFromHistory(sortedCycles.map(c => ({ startDate: c.startDate, endDate: c.endDate })))
+    const confidence = historyResult.confidence
 
     return {
       avgCycleLength,
-      weightedLength, // Use this for prediction
+      weightedLength,
       minCycleLength,
       maxCycleLength,
       stdDev,
