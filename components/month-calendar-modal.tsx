@@ -9,9 +9,10 @@ interface MonthCalendarModalProps {
     onClose: () => void
     onSelectDate: (date: Date) => void
     selectedDate: Date
+    periodDays?: Date[]
 }
 
-export default function MonthCalendarModal({ isOpen, onClose, onSelectDate, selectedDate }: MonthCalendarModalProps) {
+export default function MonthCalendarModal({ isOpen, onClose, onSelectDate, selectedDate, periodDays = [] }: MonthCalendarModalProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date())
 
     if (!isOpen) return null
@@ -20,6 +21,11 @@ export default function MonthCalendarModal({ isOpen, onClose, onSelectDate, sele
         start: startOfWeek(startOfMonth(currentMonth)),
         end: endOfWeek(endOfMonth(currentMonth))
     })
+
+    // Helper to check if a day is a period day
+    const isPeriodDay = (date: Date) => {
+        return periodDays.some(p => isSameDay(p, date))
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -50,6 +56,7 @@ export default function MonthCalendarModal({ isOpen, onClose, onSelectDate, sele
                         const isSelected = isSameDay(day, selectedDate)
                         const isCurrentMonth = isSameMonth(day, currentMonth)
                         const isFutureDate = isFuture(day)
+                        const isPeriod = isPeriodDay(day)
 
                         return (
                             <button
@@ -62,13 +69,18 @@ export default function MonthCalendarModal({ isOpen, onClose, onSelectDate, sele
                                 }}
                                 disabled={isFutureDate}
                                 className={`
-                    h-10 w-10 text-sm rounded-full flex items-center justify-center transition-all
+                    h-10 w-10 text-sm rounded-full flex items-center justify-center transition-all relative
                     ${!isCurrentMonth ? 'text-gray-300' : ''}
-                    ${isSelected ? 'bg-[#2D6A4F] text-white font-bold shadow-lg' : 'hover:bg-gray-100 text-gray-700'}
+                    ${isSelected ? 'bg-[#2D6A4F] text-white font-bold shadow-lg' :
+                                        isPeriod ? 'bg-pink-100 text-pink-700 font-bold' : 'hover:bg-gray-100 text-gray-700'}
                     ${isFutureDate ? 'opacity-30 cursor-not-allowed' : ''}
                  `}
                             >
                                 {format(day, 'd')}
+                                {/* Optional: Small dot indicator for period if selected */}
+                                {isPeriod && isSelected && (
+                                    <div className="absolute bottom-1 w-1 h-1 bg-pink-300 rounded-full"></div>
+                                )}
                             </button>
                         )
                     })}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { format, addDays, differenceInDays, isAfter, isSameDay } from "date-fns"
 import CycleCalendarStrip from "./cycle-calendar-strip"
 import MonthCalendarModal from "./month-calendar-modal"
@@ -23,6 +23,15 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
     const [isEditPeriodOpen, setIsEditPeriodOpen] = useState(false) // New State
     const [dayLogs, setDayLogs] = useState<any>(null)
     const [cycles, setCycles] = useState<any[]>([])
+
+    const [isSaving, setIsSaving] = useState(false)
+    const isUserInteraction = useRef(false) // Track if date change is from user
+
+    // Wrapper for Date Selection
+    const handleDateSelect = (date: Date) => {
+        isUserInteraction.current = true
+        setSelectedDate(date)
+    }
 
     // Cycle Calculations (Dynamic based on selected Date)
     const [cycleDisplay, setCycleDisplay] = useState({
@@ -55,19 +64,40 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
         fetchCycles()
     }, [user])
 
+    // Check if selected date is inside an existing cycle
+    const existingCycle = useMemo(() => {
+        const dateKey = format(selectedDate, 'yyyy-MM-dd')
+        return cycles.find((c: any) => {
+            return dateKey >= c.startDate && dateKey <= c.endDate
+        })
+    }, [selectedDate, cycles])
+
     // Fetch Logs for Selected Date
     const fetchDayLogs = async () => {
         if (!auth.currentUser) return
         const dateKey = format(selectedDate, 'yyyy-MM-dd')
+
+        // Reset logs temporarily while fetching (optional, but good for UI consistency)
+        // setDayLogs(null) 
+
         try {
             const snap = await getDoc(doc(db, "users", auth.currentUser.uid, "wellness_logs", dateKey))
+            const futureCheck = isAfter(selectedDate, new Date()) && !isSameDay(selectedDate, new Date())
+
             if (snap.exists()) {
                 setDayLogs(snap.data())
             } else {
                 setDayLogs(null)
+                // AUTO-OPEN LOGIC
+                // If user clicked, data is empty, and NOT future -> Open Modal
+                if (isUserInteraction.current && !futureCheck && !existingCycle) {
+                    setIsLogModalOpen(true)
+                }
             }
         } catch (e) {
             console.error("Error fetching logs", e)
+        } finally {
+            isUserInteraction.current = false // Reset interaction flag
         }
     }
 
@@ -103,22 +133,16 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
         }
     }, [selectedDate, user])
 
-    // Check if selected date is inside an existing cycle
-    const existingCycle = useMemo(() => {
-        const dateKey = format(selectedDate, 'yyyy-MM-dd')
-        return cycles.find((c: any) => {
-            return dateKey >= c.startDate && dateKey <= c.endDate
-        })
-    }, [selectedDate, cycles])
-
     const handlePeriodAction = async () => {
         if (!auth.currentUser) return
+        if (isSaving) return
 
         if (existingCycle) {
             // EDIT MODE
             setIsEditPeriodOpen(true)
         } else {
             // CREATE MODE
+            setIsSaving(true)
             const dateKey = format(selectedDate, 'yyyy-MM-dd')
             try {
                 await addDoc(collection(db, "users", auth.currentUser.uid, "cycles"), {
@@ -129,6 +153,8 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
                 alert("Period started for this date!")
             } catch (e) {
                 console.error("Error logging period", e)
+            } finally {
+                setIsSaving(false)
             }
         }
     }
@@ -194,7 +220,7 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
                 {/* Interactive Calendar Strip */}
                 <CycleCalendarStrip
                     selectedDate={selectedDate}
-                    onSelectDate={setSelectedDate}
+                    onSelectDate={handleDateSelect}
                     periodDays={allPeriodDays}
                 />
 
@@ -260,10 +286,11 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
                                         <button
                                             onClick={handlePeriodAction}
                                             className={`${existingCycle ? 'bg-pink-100 text-pink-700' : 'bg-pink-500 text-white'} hover:opacity-90 p-4 rounded-2xl flex flex-col items-center gap-2 transition-all shadow-lg active:scale-95`}
+                                            disabled={isSaving}
                                         >
                                             <Droplets className={`w-6 h-6 ${existingCycle ? 'text-pink-600' : 'text-white'}`} />
                                             <span className="font-bold text-sm">
-                                                {existingCycle ? "Edit Period" : "Log Period"}
+                                                {isSaving ? "Saving..." : (existingCycle ? "Edit Period" : "Log Period")}
                                             </span>
                                         </button>
                                         <button
@@ -285,8 +312,9 @@ export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
             <MonthCalendarModal
                 isOpen={isCalendarOpen}
                 onClose={() => setIsCalendarOpen(false)}
-                onSelectDate={setSelectedDate}
+                onSelectDate={handleDateSelect}
                 selectedDate={selectedDate}
+                periodDays={allPeriodDays}
             />
 
             {/* Daily Log Modal */}
