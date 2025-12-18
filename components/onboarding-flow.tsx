@@ -38,7 +38,18 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     cycleLength: "28",
     periodDuration: "5",
     flowIntensity: "moderate",
-    lastPeriodDate: "",
+    // We will now store a history array. lastPeriodDate will still be derived from the most recent one.
+    periodHistory: [{
+      startDate: "",
+      endDate: ""
+    }, {
+      startDate: "",
+      endDate: ""
+    }, {
+      startDate: "",
+      endDate: ""
+    }], // Default 3 empty slots
+    lastPeriodDate: "", // Derived
     periodRegularity: "somewhat",
     missedPeriodFreq: "rarely",
 
@@ -139,10 +150,22 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     // Validation Step 2: Cycle (Mandatory)
     if (step === 2) {
-      if (!userData.lastPeriodDate || !userData.cycleLength) {
-        alert("Please provide your last period date and cycle length.")
+      // Validate at least one history entry is filled
+      const validHistory = userData.periodHistory.filter(h => h.startDate && h.endDate)
+      if (validHistory.length === 0) {
+        alert("Please provide at least the most recent period dates.")
         return
       }
+
+      // Auto-calculate cycle length and last period date from history if not manually set?
+      // Actually, let's trust the user input but we MUST set lastPeriodDate for app compatibility
+      // Sort history by startDate desc
+      const sortedHistory = [...validHistory].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+
+      setUserData(prev => ({
+        ...prev,
+        lastPeriodDate: sortedHistory[0].startDate
+      }))
     }
 
     // Validation Step 3: PCOS/Conditions (Mandatory selection)
@@ -289,41 +312,79 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           {step === 2 && (
             <div className="space-y-6 max-w-md mx-auto w-full">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Menstrual History</h2>
-              <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 mb-2">
-                <Info className="w-4 h-4 inline mr-1" />
-                We need at least 3 months of history for accurate predictions. Please estimate your averages carefully.
+              <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-800 mb-2 leading-relaxed border border-blue-100">
+                <Info className="w-5 h-5 inline mr-2 text-blue-600 mb-1" />
+                <strong>3-Month History Required</strong><br />
+                To provide accurate predictions, please enter the Start and End dates for your last 3 periods.
+                Estimate if exact dates are unavailable.
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age at First Period</label>
-                  <input type="number" value={userData.firstPeriodAge} onChange={(e) => setUserData({ ...userData, firstPeriodAge: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="e.g. 13" />
+              <div className="space-y-6">
+                {/* Period History Inputs */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-gray-900">Recent Period History</label>
+                  {userData.periodHistory.map((entry, index) => (
+                    <div key={index} className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          {index === 0 ? "Most Recent" : `Cycle ${index + 1} ago`}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={entry.startDate}
+                            onChange={(e) => {
+                              const newHistory = [...userData.periodHistory]
+                              newHistory[index].startDate = e.target.value
+                              setUserData({ ...userData, periodHistory: newHistory })
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                          <input
+                            type="date"
+                            value={entry.endDate}
+                            onChange={(e) => {
+                              const newHistory = [...userData.periodHistory]
+                              newHistory[index].endDate = e.target.value
+                              setUserData({ ...userData, periodHistory: newHistory })
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Are your periods regular?</label>
-                  <div className="flex flex-wrap gap-2">
-                    {["Regular", "Somewhat", "Irregular", "No Periods"].map(opt => (
-                      <button key={opt}
-                        onClick={() => setUserData({ ...userData, periodRegularity: opt.toLowerCase() })}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${userData.periodRegularity === opt.toLowerCase() ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                <hr className="border-gray-100" />
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Age at First Period</label>
+                    <input type="number" value={userData.firstPeriodAge} onChange={(e) => setUserData({ ...userData, firstPeriodAge: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="e.g. 13" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Regularity</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Regular", "Somewhat", "Irregular", "No Periods"].map(opt => (
+                        <button key={opt}
+                          onClick={() => setUserData({ ...userData, periodRegularity: opt.toLowerCase() })}
+                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${userData.periodRegularity === opt.toLowerCase() ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Last Period (LMP) *</label>
-                    <input type="date" value={userData.lastPeriodDate} onChange={(e) => setUserData({ ...userData, lastPeriodDate: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Avg Cycle Length (Days) *</label>
-                    <input type="number" value={userData.cycleLength} onChange={(e) => setUserData({ ...userData, cycleLength: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="28" />
-                  </div>
-                </div>
               </div>
             </div>
           )}
