@@ -100,8 +100,8 @@ export default function DailyLogModal({ isOpen, onClose, date, currentData, onSa
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col mb-4 sm:mb-0">
 
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-100">
@@ -274,7 +274,7 @@ export default function DailyLogModal({ isOpen, onClose, date, currentData, onSa
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 bg-white">
+                <div className="p-6 border-t border-gray-100 bg-white pb-8 sm:pb-6">
                     <button
                         onClick={handleSave}
                         disabled={loading}

@@ -2,9 +2,10 @@ import { PlusCircle, ClipboardList, Stethoscope, BookOpen } from "lucide-react"
 
 interface HomeQuickActionsProps {
   onNavigate: (page: string) => void
+  onLogSymptoms: () => void
 }
 
-export default function HomeQuickActions({ onNavigate }: HomeQuickActionsProps) {
+export default function HomeQuickActions({ onNavigate, onLogSymptoms }: HomeQuickActionsProps) {
   const actions = [
     { id: "period-tracker", label: "Log Period", icon: PlusCircle, color: "text-primary border-primary/20 hover:bg-primary/5" },
     { id: "symptoms", label: "Log Symptoms", icon: ClipboardList, color: "text-accent-warm border-accent-warm/20 hover:bg-accent-warm/5" },
@@ -23,7 +24,7 @@ export default function HomeQuickActions({ onNavigate }: HomeQuickActionsProps) 
           return (
             <button
               key={action.id}
-              onClick={() => onNavigate(action.id)}
+              onClick={() => action.id === "symptoms" ? onLogSymptoms() : onNavigate(action.id)}
               className={`group relative flex items-center p-4 rounded-2xl border transition-all duration-300 active:scale-95 hover:shadow-md bg-white ${action.color}`}
             >
               <div className="bg-gray-50 p-3 rounded-full mr-3 group-hover:scale-110 transition-transform">

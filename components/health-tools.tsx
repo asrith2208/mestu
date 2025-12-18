@@ -124,8 +124,8 @@ export default function HealthTools({ user }: HealthToolsProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 pb-40">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">{t('healthTools')}</h2>
-        <p className="text-muted-foreground">{t('healthToolsDesc')}</p>
+        <h2 className="text-3xl font-bold text-foreground mb-2">Health Tools</h2>
+        <p className="text-muted-foreground">Exercise, Nutrition, Wellness & Cycle-based Recommendations</p>
       </div>
 
       {/* Cycle Recommendations */}

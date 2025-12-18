@@ -10,16 +10,18 @@ import { db, auth } from "@/lib/firebase"
 
 interface HomeHeroSectionProps {
     user: any
+    isLogModalOpen: boolean
+    setIsLogModalOpen: (open: boolean) => void
 }
 
 import DailyLogModal from "./daily-log-modal"
 import EditPeriodModal from "./edit-period-modal"
 
-export default function HomeHeroSection({ user }: HomeHeroSectionProps) {
+export default function HomeHeroSection({ user, isLogModalOpen, setIsLogModalOpen }: HomeHeroSectionProps) {
     // State
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-    const [isLogModalOpen, setIsLogModalOpen] = useState(false)
+    // Removed local isLogModalOpen
     const [isEditPeriodOpen, setIsEditPeriodOpen] = useState(false) // New State
     const [dayLogs, setDayLogs] = useState<any>(null)
     const [cycles, setCycles] = useState<any[]>([])

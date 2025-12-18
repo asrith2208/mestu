@@ -201,7 +201,7 @@ export default function PeriodTracker({ user }: PeriodTrackerProps) {
             <p className="text-muted-foreground">No cycles logged yet. Start tracking to see your patterns!</p>
           </div>
         ) : (
-          cycles
+          Array.from(new Map(cycles.map(cycle => [cycle.startDate, cycle])).values())
             .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
             .map((cycle) => (
               <div key={cycle.id} className="bg-white border border-border rounded-lg p-4 shadow-sm">
