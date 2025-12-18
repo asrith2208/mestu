@@ -47,7 +47,17 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (user) {
-            router.push(isAdminMode ? "/admin" : "/")
+            if (isAdminMode) {
+                // Only redirect to admin dashboard if we are ALREADY the admin
+                if (user.email === "saukya2025@gmail.com") {
+                    router.push("/admin")
+                }
+                // If logged in as regular user but trying to access admin login, 
+                // do NOT redirect. Let them see the form to switch accounts.
+            } else {
+                // Normal user flow: if logged in, go home
+                router.push("/")
+            }
         }
     }, [user, router, isAdminMode])
 
