@@ -62,6 +62,9 @@ export default function LoginPage() {
             if (error.code === "auth/invalid-phone-number") msg = "Invalid phone number format."
             if (error.code === "auth/quota-exceeded") msg = "SMS quota exceeded."
             if (error.code === "auth/too-many-requests") msg = "Too many requests. Try again later."
+            if (error.code === "auth/invalid-app-credential" || error.code === "auth/missing-client-identifier") {
+                msg = "Development Error: Please use a Test Phone Number (set in Firebase Console) for localhost."
+            }
 
             toast.error(msg)
             if (window.recaptchaVerifier) {

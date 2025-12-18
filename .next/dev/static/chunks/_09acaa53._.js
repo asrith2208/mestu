@@ -17,6 +17,8 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$auth$2f$dist$2f$esm$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/auth/dist/esm/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$firestore$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/firebase/firestore/dist/esm/index.esm.js [app-client] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/firestore/dist/index.esm.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/firebase/app-check/dist/esm/index.esm.js [app-client] (ecmascript) <locals>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@firebase/app-check/dist/esm/index.esm.js [app-client] (ecmascript)");
 ;
 ;
 ;
@@ -32,6 +34,24 @@ const firebaseConfig = {
 const app = !(0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getApps"])().length ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["initializeApp"])(firebaseConfig) : (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getApp"])();
 const auth = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$auth$2f$dist$2f$esm$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getAuth"])(app);
 const db = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$firestore$2f$dist$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFirestore"])(app);
+// Initialize App Check (for Real Phone Auth on Localhost)
+if ("TURBOPACK compile-time truthy", 1) {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+;
+if ("TURBOPACK compile-time truthy", 1) {
+    // Only init App Check on client side
+    try {
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["initializeAppCheck"])(app, {
+            provider: new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$firebase$2f$app$2d$check$2f$dist$2f$esm$2f$index$2e$esm$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ReCaptchaEnterpriseProvider"](__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "your-site-key"),
+            isTokenAutoRefreshEnabled: true
+        });
+        console.log("Firebase App Check initialized.");
+    } catch (e) {
+        console.warn("App Check failed to load (expected if no key provided):", e);
+    }
+}
 ;
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -385,7 +405,35 @@ const translations = {
         irregular: "Irregular",
         inApprox: "In approx",
         days: "days",
-        expectedSoon: "Expected soon"
+        expectedSoon: "Expected soon",
+        // Health Tools
+        wellness: "Wellness",
+        exercise: "Exercise",
+        nutrition: "Nutrition",
+        stressRelief: "Stress Relief",
+        aiCheck: "AI Check",
+        healthTools: "Health Management Tools",
+        healthToolsDesc: "Exercise, nutrition, wellness, and cycle-based recommendations",
+        // Profile
+        basicInfo: "Basic Information",
+        email: "Email",
+        cycleInfo: "Cycle Information",
+        healthConditions: "Health Conditions",
+        notificationPreferences: "Notification Preferences",
+        periodReminders: "Period Reminders",
+        symptomReminders: "Symptom Tracking Reminders",
+        wellnessReminders: "Wellness Reminders",
+        communityUpdates: "Community Updates",
+        emailNotifications: "Email Notifications",
+        privacySettings: "Privacy Settings",
+        privateProfile: "Private Profile",
+        dataSharing: "Allow Data Sharing",
+        analyticsTracking: "Analytics Tracking",
+        dataManagement: "Data Management",
+        exportData: "Export My Data",
+        deleteData: "Delete All Data",
+        saveProfile: "Save Profile",
+        saveSettings: "Save Settings"
     },
     hi: {
         profile: "प्रोफ़ाइल",
@@ -430,7 +478,51 @@ const translations = {
         irregular: "अनियमित",
         inApprox: "लगभग",
         days: "दिनों में",
-        expectedSoon: "जल्द अपेक्षित"
+        expectedSoon: "जल्द अपेक्षित",
+        // Health Tools
+        wellness: "कल्याण",
+        exercise: "व्यायाम",
+        nutrition: "पोषण",
+        stressRelief: "तनाव मुक्ति",
+        aiCheck: "AI जाँच",
+        healthTools: "स्वास्थ्य प्रबंधन उपकरण",
+        healthToolsDesc: "व्यायाम, पोषण, कल्याण और चक्र-आधारित सिफारिशें",
+        // Symptom Tracker
+        physicalSymptoms: "शारीरिक लक्षण",
+        emotionalSymptoms: " भावनात्मक लक्षण",
+        lifestyleSymptoms: "जीवनशैली प्रभाव",
+        cramps: "ऐंठन (Cramps)",
+        bloating: "पेट फूलना",
+        fatigue: "थकान",
+        headache: "सिरदर्द",
+        nausea: "जी मिचलाना",
+        acne: "मुंहासे",
+        moodChanges: "मनोदशा में बदलाव",
+        irritability: "चिड़चिड़ापन",
+        depression: "उदासी",
+        sleepIssues: "नींद की समस्या",
+        appetiteChanges: "भूख में बदलाव",
+        lowEnergy: "कम ऊर्जा",
+        // Profile
+        basicInfo: "बुनियादी जानकारी",
+        email: "ईमेल",
+        cycleInfo: "चक्र की जानकारी",
+        healthConditions: "स्वास्थ्य स्थितियां",
+        notificationPreferences: "अधिसूचना प्राथमिकताएं",
+        periodReminders: "माहवारी अनुस्मारक",
+        symptomReminders: "लक्षण ट्रैकिंग अनुस्मारक",
+        wellnessReminders: "कल्याण अनुस्मारक",
+        communityUpdates: "समुदाय अपडेट",
+        emailNotifications: "ईमेल सूचनाएं",
+        privacySettings: "गोपनीयता सेटिंग्स",
+        privateProfile: "निजी प्रोफ़ाइल",
+        dataSharing: "डेटा साझा करने की अनुमति दें",
+        analyticsTracking: "एनालिटिक्स ट्रैकिंग",
+        dataManagement: "डेटा प्रबंधन",
+        exportData: "मेरा डेटा निर्यात करें",
+        deleteData: "सभी डेटा हटाएं",
+        saveProfile: "प्रोफ़ाइल सहेजें",
+        saveSettings: "सेटिंग्स सहेजें"
     },
     mr: {
         profile: "प्रोफाइल",
@@ -475,7 +567,51 @@ const translations = {
         irregular: "अनियमित",
         inApprox: "सुमारे",
         days: "दिवसांत",
-        expectedSoon: "लवकरच अपेक्षित"
+        expectedSoon: "लवकरच अपेक्षित",
+        // Health Tools
+        wellness: "कल्याण",
+        exercise: "व्यायाम",
+        nutrition: "पोषण",
+        stressRelief: "तणाव मुक्ती",
+        aiCheck: "AI तपासणी",
+        healthTools: "आरोग्य व्यवस्थापन साधने",
+        healthToolsDesc: "व्यायाम, पोषण, कल्याण आणि चक्र-आधारित शिफारसी",
+        // Symptom Tracker
+        physicalSymptoms: "शारीरिक लक्षणे",
+        emotionalSymptoms: "भावनिक लक्षणे",
+        lifestyleSymptoms: "जीवनशैली परिणाम",
+        cramps: "पोटात मुरडा (Cramps)",
+        bloating: "पोट फुगणे",
+        fatigue: "थकवा",
+        headache: "डोकेदुखी",
+        nausea: "मळमळ",
+        acne: "मुरुम",
+        moodChanges: "मूड बदलणे",
+        irritability: "चिडचिड",
+        depression: "उदासीनता",
+        sleepIssues: "झोपेशी संबंधित समस्या",
+        appetiteChanges: "भूक बदलणे",
+        lowEnergy: "कमी ऊर्जा",
+        // Profile
+        basicInfo: "मूलभूत माहिती",
+        email: "ईमेल",
+        cycleInfo: "चक्र माहिती",
+        healthConditions: "आरोग्य स्थिती",
+        notificationPreferences: "सूचना प्राधान्ये",
+        periodReminders: "पाळी स्मरणपत्रे",
+        symptomReminders: "लक्षण ट्रॅकिंग स्मरणपत्रे",
+        wellnessReminders: "कल्याण स्मरणपत्रे",
+        communityUpdates: "समुदाय अद्यतने",
+        emailNotifications: "ईमेल सूचना",
+        privacySettings: "गोपनीयता सेटिंग्ज",
+        privateProfile: "खाजगी प्रोफाइल",
+        dataSharing: "डेटा सामायिक करण्यास परवानगी द्या",
+        analyticsTracking: "Analytics ट्रॅकिंग",
+        dataManagement: "डेटा व्यवस्थापन",
+        exportData: "माझा डेटा निर्यात करा",
+        deleteData: "सर्व डेटा हटवा",
+        saveProfile: "प्रोफाइल जतन करा",
+        saveSettings: "सेटिंग्ज जतन करा"
     }
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {

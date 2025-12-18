@@ -17,4 +17,25 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Initialize App Check (for Real Phone Auth on Localhost)
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+
+if (typeof window !== "undefined") {
+    // Only init App Check on client side
+    try {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "your-site-key"),
+            isTokenAutoRefreshEnabled: true,
+        });
+        console.log("Firebase App Check initialized.");
+    } catch (e) {
+        console.warn("App Check failed to load (expected if no key provided):", e);
+    }
+}
+
 export { app, auth, db };

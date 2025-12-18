@@ -1,15 +1,13 @@
-[00:00:08.274] Server  LOG      ✓ Ready in 7.6s
-[00:00:11.428] Server  LOG      ○ Compiling / ...
-[00:00:25.498] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+[00:00:02.050] Server  LOG      ✓ Ready in 1220ms
+[00:00:05.394] Server  LOG      ○ Compiling /login ...
+[00:00:07.374] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
 Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
-[00:00:26.027] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+[00:00:08.191] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:02:09.093] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
 Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
-[00:00:27.159] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:31.150] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
-Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
-[00:00:31.198] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
-Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
-[00:01:26.528] Browser LOG     Failed to initialize reCAPTCHA Enterprise config. Triggering the reCAPTCHA v2 verification.
-[00:01:32.670] Browser ERROR   {"code":"auth/invalid-app-credential","customData":{},"name":"FirebaseError"}
-[00:01:37.572] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
-Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:02:09.378] Server  LOG      ✓ Compiled in 480ms
+[00:02:09.379] Browser LOG     Firebase App Check initialized.
+[00:02:09.379] Browser LOG     App Check debug token: 57fc9bcb-f8d7-41a5-aef9-64e63421991b. You will need to add it to your app's App Check settings in the Firebase console for it to work.
+[00:02:10.215] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:02:11.325] Browser LOG     Firebase App Check initialized.
+[00:02:11.325] Browser LOG     App Check debug token: 57fc9bcb-f8d7-41a5-aef9-64e63421991b. You will need to add it to your app's App Check settings in the Firebase console for it to work.
