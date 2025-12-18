@@ -76,13 +76,19 @@ export default function LoginPage() {
         setLoading(true)
         try {
             const formattedNumber = `${countryCode}${phoneNumber}`
-            const appVerifier = window.recaptchaVerifier
+            const appVerifier = getRecaptchaVerifier()
             const confirmation = await signInWithPhoneNumber(auth, formattedNumber, appVerifier)
             setConfirmationResult(confirmation)
             setStep("OTP")
             toast.success(`OTP sent to ${formattedNumber}`)
         } catch (error: any) {
-            console.error(error)
+            console.error("OTP Send Error:", error)
+
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear()
+                window.recaptchaVerifier = null
+            }
+
             let msg = "Failed to send OTP."
             if (error.code === "auth/invalid-phone-number") msg = "Invalid phone number format."
             if (error.code === "auth/quota-exceeded") msg = "SMS quota exceeded."
@@ -92,10 +98,6 @@ export default function LoginPage() {
             }
 
             toast.error(msg)
-            if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear()
-                window.recaptchaVerifier = null
-            }
         } finally {
             setLoading(false)
         }

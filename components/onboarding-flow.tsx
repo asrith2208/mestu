@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Check, ClipboardList, Target, AlertCircle, Heart
 
 function ShieldCheckIcon(props: any) { return <ShieldCheck {...props} /> }
 import { useLanguage } from "./language-context"
+import { predictNextCycle, calculateCycleLengthsFromDates, addDays, predictNextPeriodFromHistory } from "@/lib/skiptrack"
 
 interface OnboardingFlowProps {
   onComplete: (userData: any) => void
@@ -52,6 +53,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     lastPeriodDate: "", // Derived
     periodRegularity: "somewhat",
     missedPeriodFreq: "rarely",
+    nextPredictedPeriod: "", // Store the result here
 
     // PCOS & Health
     pcosStatus: "unsure",
@@ -159,33 +161,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
       // Auto-calculate cycle length and last period date from history if not manually set?
       // Actually, let's trust the user input but we MUST set lastPeriodDate for app compatibility
-      // Sort history by startDate desc
-      // Sort history by startDate desc
+      // Calculate Prediction using SkipTrack Bayesian Model
+      const prediction = predictNextPeriodFromHistory(userData.periodHistory)
       const sortedHistory = [...validHistory].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-
-      // Calculate Average Cycle Length
-      let avgCycle = 28
-      if (sortedHistory.length >= 2) {
-        let totalDays = 0
-        let gaps = 0
-        for (let i = 0; i < sortedHistory.length - 1; i++) {
-          const current = new Date(sortedHistory[i].startDate)
-          const previous = new Date(sortedHistory[i + 1].startDate)
-          const diffTime = Math.abs(current.getTime() - previous.getTime())
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          if (diffDays > 20 && diffDays < 45) { // Filter outliers
-            totalDays += diffDays
-            gaps++
-          }
-        }
-        if (gaps > 0) avgCycle = Math.round(totalDays / gaps)
-      }
 
       setUserData(prev => ({
         ...prev,
         lastPeriodDate: sortedHistory[0].startDate,
-        cycleLength: avgCycle.toString(),
-        // We preserve manual input if history didn't yield result, otherwise overwrite
+        cycleLength: prediction.meanCycleLength.toString(),
+        periodDuration: prediction.meanPeriodDuration.toString(),
+        nextPredictedPeriod: prediction.nextStartDate,
       }))
     }
 
