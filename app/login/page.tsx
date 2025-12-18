@@ -72,6 +72,19 @@ export default function LoginPage() {
         }
     }, [isAdminMode])
 
+    const getRecaptchaVerifier = () => {
+        if (!window.recaptchaVerifier) {
+            // @ts-ignore
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+                size: "invisible",
+                callback: () => {
+                    // reCAPTCHA solved
+                },
+            })
+        }
+        return window.recaptchaVerifier
+    }
+
     const handleSendOtp = async () => {
         setLoading(true)
         try {
@@ -237,7 +250,7 @@ export default function LoginPage() {
                         )
                     )}
 
-                    {!isAdminMode && (
+                    {/* {!isAdminMode && (
                         <div className="mt-6 text-center">
                             <div className="relative">
                                 <div className="absolute inset-0 flex items-center">
@@ -302,7 +315,7 @@ export default function LoginPage() {
                                 🧪 Test Login (Bypass OTP)
                             </Button>
                         </div>
-                    )}
+                    )} */}
                 </CardContent>
             </Card>
         </div>
