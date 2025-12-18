@@ -22,7 +22,7 @@ const symptoms = [
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const { t, setLanguage, language } = useLanguage()
-  const [step, setStep] = useState(-1)
+  const [step, setStep] = useState(0)
   const [userData, setUserData] = useState({
     // Basics
     name: "",
@@ -181,7 +181,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }
 
   const handleBack = () => {
-    if (step > -1) setStep(step - 1)
+    if (step > 0) setStep(step - 1)
   }
 
   const progressPercent = ((step + 1) / 8) * 100
@@ -214,25 +214,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <div className="p-8 min-h-[400px] flex flex-col justify-center">
 
           {/* Step -1 & 0 (Language/Welcome) */}
-          {step === -1 && (
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-8">Select Language / भाषा चुनें</h1>
-              <div className="grid gap-4 max-w-md mx-auto">
-                <button onClick={() => { setLanguage('en'); setStep(0) }} className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group">
-                  <span className="text-lg font-bold text-gray-700 group-hover:text-primary">English</span>
-                  <span className="text-3xl">🇺🇸</span>
-                </button>
-                <button onClick={() => { setLanguage('hi'); setStep(0) }} className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group">
-                  <span className="text-lg font-bold text-gray-700 group-hover:text-primary">हिंदी (Hindi)</span>
-                  <span className="text-3xl">🇮🇳</span>
-                </button>
-                <button onClick={() => { setLanguage('mr'); setStep(0) }} className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group">
-                  <span className="text-lg font-bold text-gray-700 group-hover:text-primary">मराठी (Marathi)</span>
-                  <span className="text-3xl">🇮🇳</span>
-                </button>
-              </div>
-            </div>
-          )}
+
 
           {step === 0 && (
             <div className="text-center">
